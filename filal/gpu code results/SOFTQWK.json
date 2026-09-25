@@ -1,0 +1,287 @@
+{
+  "arm": "SOFTQWK",
+  "group": "softqwk",
+  "target": "ours (STBW 2025)",
+  "head": "reg",
+  "micro_batch": 64,
+  "grad_accum": 1,
+  "gradient_checkpointing": true,
+  "epochs": 6,
+  "loss_is_batch_statistic": true,
+  "phase1_history": [
+    {
+      "eval_loss": 4.040535926818848,
+      "eval_qwk": 0.8123867882001398,
+      "eval_acc19": 0.26839945280437755,
+      "eval_acc19_pm1": 0.6596443228454172,
+      "eval_dist": 1.3909712722298222,
+      "eval_acc7": 0.487140902872777,
+      "eval_acc5": 0.6062927496580027,
+      "eval_acc3": 0.7176470588235294,
+      "eval_macro_f1": 0.16019944238460432,
+      "eval_far_ge3": 0.14883720930232558,
+      "eval_far_ge5": 0.04076607387140903,
+      "eval_runtime": 8.6333,
+      "eval_samples_per_second": 846.726,
+      "eval_steps_per_second": 52.935,
+      "epoch": 1.0,
+      "step": 857
+    },
+    {
+      "eval_loss": 3.5912036895751953,
+      "eval_qwk": 0.825395559641794,
+      "eval_acc19": 0.34103967168262656,
+      "eval_acc19_pm1": 0.7043775649794801,
+      "eval_dist": 1.249658002735978,
+      "eval_acc7": 0.5641586867305062,
+      "eval_acc5": 0.6454172366621067,
+      "eval_acc3": 0.738030095759234,
+      "eval_macro_f1": 0.21210571133845982,
+      "eval_far_ge3": 0.13885088919288646,
+      "eval_far_ge5": 0.041450068399452804,
+      "eval_runtime": 8.6976,
+      "eval_samples_per_second": 840.46,
+      "eval_steps_per_second": 52.543,
+      "epoch": 2.0,
+      "step": 1714
+    },
+    {
+      "eval_loss": 3.602269411087036,
+      "eval_qwk": 0.8309532804479334,
+      "eval_acc19": 0.3627906976744186,
+      "eval_acc19_pm1": 0.7220246238030096,
+      "eval_dist": 1.2153214774281806,
+      "eval_acc7": 0.5744186046511628,
+      "eval_acc5": 0.6558139534883721,
+      "eval_acc3": 0.7440492476060192,
+      "eval_macro_f1": 0.28276585656071235,
+      "eval_far_ge3": 0.133515731874145,
+      "eval_far_ge5": 0.04240766073871409,
+      "eval_runtime": 8.6729,
+      "eval_samples_per_second": 842.854,
+      "eval_steps_per_second": 52.693,
+      "epoch": 3.0,
+      "step": 2571
+    }
+  ],
+  "phase1_selected_epoch": 2.0,
+  "phase1_realised_train_batch": 64,
+  "phase1_steps_per_epoch_observed": [
+    857,
+    857,
+    857
+  ],
+  "phase1_steps_per_epoch_expected": [
+    857
+  ],
+  "phase1_dev": {
+    "qwk": 0.825395559641794,
+    "acc19": 0.34103967168262656,
+    "acc19_pm1": 0.7043775649794801,
+    "dist": 1.249658002735978,
+    "acc7": 0.5641586867305062,
+    "acc5": 0.6454172366621067,
+    "acc3": 0.738030095759234,
+    "macro_f1": 0.21210571133845982,
+    "far_ge3": 0.13885088919288646,
+    "far_ge5": 0.041450068399452804
+  },
+  "phase1_selection_check": {
+    "logged_at_selected_epoch": {
+      "qwk": 0.825395559641794,
+      "acc19": 0.34103967168262656,
+      "dist": 1.249658002735978
+    },
+    "reloaded_snapshot_dev": {
+      "qwk": 0.825395559641794,
+      "acc19": 0.34103967168262656,
+      "dist": 1.249658002735978
+    },
+    "abs_diff": {
+      "qwk": 0.0,
+      "acc19": 0.0,
+      "dist": 0.0
+    },
+    "exact": true
+  },
+  "history": [
+    {
+      "eval_loss": 0.41643962264060974,
+      "eval_qwk": 0.8213226408995877,
+      "eval_acc19": 0.31244870041039674,
+      "eval_acc19_pm1": 0.686046511627907,
+      "eval_dist": 1.3730506155950752,
+      "eval_acc7": 0.56593707250342,
+      "eval_acc5": 0.6606019151846785,
+      "eval_acc3": 0.7506155950752395,
+      "eval_macro_f1": 0.22369680508718817,
+      "eval_far_ge3": 0.14719562243502052,
+      "eval_far_ge5": 0.05307797537619699,
+      "eval_runtime": 8.924,
+      "eval_samples_per_second": 819.139,
+      "eval_steps_per_second": 51.21,
+      "epoch": 1.0,
+      "step": 857
+    },
+    {
+      "eval_loss": 0.4106996953487396,
+      "eval_qwk": 0.8324066886862795,
+      "eval_acc19": 0.35225718194254446,
+      "eval_acc19_pm1": 0.7232558139534884,
+      "eval_dist": 1.2506155950752393,
+      "eval_acc7": 0.5829001367989056,
+      "eval_acc5": 0.6575923392612859,
+      "eval_acc3": 0.753077975376197,
+      "eval_macro_f1": 0.280297382552271,
+      "eval_far_ge3": 0.13830369357045144,
+      "eval_far_ge5": 0.047332421340629274,
+      "eval_runtime": 9.1739,
+      "eval_samples_per_second": 796.823,
+      "eval_steps_per_second": 49.815,
+      "epoch": 2.0,
+      "step": 1714
+    },
+    {
+      "eval_loss": 0.4121643006801605,
+      "eval_qwk": 0.8256684300278533,
+      "eval_acc19": 0.35800273597811216,
+      "eval_acc19_pm1": 0.7108071135430917,
+      "eval_dist": 1.2796169630642955,
+      "eval_acc7": 0.5838577291381669,
+      "eval_acc5": 0.6656634746922024,
+      "eval_acc3": 0.7502051983584132,
+      "eval_macro_f1": 0.27332632306039334,
+      "eval_far_ge3": 0.14008207934336525,
+      "eval_far_ge5": 0.05006839945280438,
+      "eval_runtime": 9.0477,
+      "eval_samples_per_second": 807.938,
+      "eval_steps_per_second": 50.51,
+      "epoch": 3.0,
+      "step": 2571
+    }
+  ],
+  "selected_by": "lowest dev eval_loss over all epochs, no early stopping (train.py:481-483)",
+  "selected_epoch": 2.0,
+  "realised_train_batch": 64,
+  "steps_per_epoch_observed": [
+    857,
+    857,
+    857
+  ],
+  "steps_per_epoch_expected": [
+    857
+  ],
+  "steps_per_epoch_ok": true,
+  "dev": {
+    "qwk": 0.8324066886862795,
+    "acc19": 0.35225718194254446,
+    "acc19_pm1": 0.7232558139534884,
+    "dist": 1.2506155950752393,
+    "acc7": 0.5829001367989056,
+    "acc5": 0.6575923392612859,
+    "acc3": 0.753077975376197,
+    "macro_f1": 0.280297382552271,
+    "far_ge3": 0.13830369357045144,
+    "far_ge5": 0.047332421340629274
+  },
+  "test": {
+    "qwk": 0.8431199505662549,
+    "acc19": 0.35959374142190503,
+    "acc19_pm1": 0.7220697227559704,
+    "dist": 1.1962668130661542,
+    "acc7": 0.5732912434806479,
+    "acc5": 0.6435629975295086,
+    "acc3": 0.7279714520999176,
+    "macro_f1": 0.289568882011814,
+    "far_ge3": 0.1306615426846006,
+    "far_ge5": 0.0418611034861378
+  },
+  "selection_check": {
+    "logged_at_selected_epoch": {
+      "qwk": 0.8324066886862795,
+      "acc19": 0.35225718194254446,
+      "dist": 1.2506155950752393
+    },
+    "reloaded_snapshot_dev": {
+      "qwk": 0.8324066886862795,
+      "acc19": 0.35225718194254446,
+      "dist": 1.2506155950752393
+    },
+    "abs_diff": {
+      "qwk": 0.0,
+      "acc19": 0.0,
+      "dist": 0.0
+    },
+    "exact": true
+  },
+  "ablation_qwk_selected": {
+    "selected_by": "highest dev QWK (ZAI/STBW rule, NOT BAREC's); ablation, dev leaks",
+    "selected_epoch": 2.0,
+    "dev": {
+      "qwk": 0.8324066886862795,
+      "acc19": 0.35225718194254446,
+      "acc19_pm1": 0.7232558139534884,
+      "dist": 1.2506155950752393,
+      "acc7": 0.5829001367989056,
+      "acc5": 0.6575923392612859,
+      "acc3": 0.753077975376197,
+      "macro_f1": 0.280297382552271,
+      "far_ge3": 0.13830369357045144,
+      "far_ge5": 0.047332421340629274
+    },
+    "test": {
+      "qwk": 0.8431199505662549,
+      "acc19": 0.35959374142190503,
+      "acc19_pm1": 0.7220697227559704,
+      "dist": 1.1962668130661542,
+      "acc7": 0.5732912434806479,
+      "acc5": 0.6435629975295086,
+      "acc3": 0.7279714520999176,
+      "macro_f1": 0.289568882011814,
+      "far_ge3": 0.1306615426846006,
+      "far_ge5": 0.0418611034861378
+    },
+    "selection_check": {
+      "logged_at_selected_epoch": {
+        "qwk": 0.8324066886862795,
+        "acc19": 0.35225718194254446,
+        "dist": 1.2506155950752393
+      },
+      "reloaded_snapshot_dev": {
+        "qwk": 0.8324066886862795,
+        "acc19": 0.35225718194254446,
+        "dist": 1.2506155950752393
+      },
+      "abs_diff": {
+        "qwk": 0.0,
+        "acc19": 0.0,
+        "dist": 0.0
+      },
+      "exact": true
+    }
+  },
+  "provenance": {
+    "family": "barec_exact_v3",
+    "script": "barec_exact_v3_partC (2026-09-14)",
+    "part": "C",
+    "utc": "2026-09-15T13:55:25+00:00",
+    "python": "3.12.13",
+    "torch": "2.10.0+cu128",
+    "transformers": "5.0.0",
+    "datasets": "5.0.0",
+    "accelerate": "1.13.0",
+    "cuda_visible_devices": "0",
+    "cuda_device_count": 1,
+    "gpu_name": "Tesla T4",
+    "dataset": "CAMeL-Lab/BAREC-Corpus-v1.0",
+    "dataset_sha": "3a336527783c4c3311a900429203bf4e25c7a80f",
+    "smoke": false,
+    "n_gpu": 1,
+    "per_device_train_batch": 64,
+    "grad_accum": 1,
+    "realised_train_batch": 64,
+    "eval_batch": 16,
+    "fp16": true
+  },
+  "minutes": 29.5
+}
