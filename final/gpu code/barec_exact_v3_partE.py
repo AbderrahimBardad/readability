@@ -1,34 +1,35 @@
 # =============================================================================
-#  barec_exact_v3_partD.py   PART D -- new losses from readability papers in
+#  barec_exact_v3_partE.py   PART E -- new losses from readability papers in
 #                             other languages. This is barec_exact_v3_partA.py
-#                             with PART = "D", the three losses below, their
+#                             with PART = "E", the three losses below, their
 #                             self-tests and their three arms added. Data,
 #                             splits, model, heads, training arguments, seed,
 #                             metrics, selection rule, batch rules, guards and
 #                             report are the v3 code, unchanged.
 #
-#  PART D ARMS (one Kaggle account, about 1.5 h in total)
-#   LBL   Length-Balanced Loss. Li, Wang & Wu, EMNLP 2022, pp. 7446-7457;
-#         English (Cambridge, OneStopEnglish, WeeBit) and Chinese readability.
-#         Transcribed from the authors' code, github.com/liwb1219/zhfeat,
-#         BERT-FP-LBL/src/loss/: cross-entropy where level k is weighted by
-#         c_k^rho, c_k = its share of the "weighted length" 0.25*(mean + min +
-#         median + max) of the TRAIN texts' word counts. The authors use rho 0.4,
-#         0.6 and 0.8 on their three datasets; this file uses 0.6.
-#         Head: v3's 19-way head. Control: v3 CE.
+#  No overlap with Parts A-C (CE, MSE, OLL15, EMD, SOFT2-5, CORAL, CORAL_HEADLR,
+#  SOFTQWK) or with the Part D already run (CORN, TSOFT12, LBL10).
+#
+#  PART E ARMS (one Kaggle account, about 1.5 h in total)
 #   WKL   Weighted Kappa Loss. de la Torre, Puig & Valls, Pattern Recognition
 #         Letters 105 (2018); compared for English and Chinese readability by
 #         Lim & Lee, BEA 2024. Transcribed from BAREC's own train.py:87-114
 #         (WKLTrainer), which v3 had not run. Head: v3's 19-way head.
-#   RANK  MSE + pairwise Margin Ranking Loss. Trokhymovych, Sen & Gerlach 2024
-#         (arXiv 2406.01835; Wikipedia readability in 14 languages; TRank) and
-#         Lee & Vajjala, Findings of ACL 2022 (pairwise ranking for English,
-#         French, Spanish). MRL = max(0, -y(S1 - S2) + m). A pure ranking score
-#         has no scale, so MSE anchors it to the 19 levels. Head: v3's
-#         regression head. Control: v3 MSE.
-#   WKL and RANK are statistics of the whole batch, so they use v3's rule D3
-#   (true batch 64, gradient checkpointing) -- the batch train.py runs WKL at.
-#   LBL is a per-sample mean and uses D1 (16 x 4).
+#   RANK  MSE + pairwise Margin Ranking Loss max(0, m - (s_i - s_j)) for
+#         y_i > y_j. Trokhymovych, Sen & Gerlach 2024 (arXiv 2406.01835;
+#         Wikipedia readability in 14 languages; TRank, margin m = 0.5).
+#         Head: v3's regression head. Control: v3 MSE.
+#   PLR   MSE + Pairwise Logistic (RankNet) Loss log(1 + exp(-(s_i - s_j))) for
+#         y_i > y_j. Lee & Vajjala, Findings of ACL 2022, pp. 3802-3813 (NPRM;
+#         English, French, Spanish). Their code, github.com/jlee118/NPRM,
+#         Modelling/pairwise_readability_ranking.py, trains with TF-Ranking's
+#         tfr.keras.losses.PairwiseLogisticLoss(); the formula is transcribed
+#         from tensorflow_ranking 0.5.5 losses_impl.py. Head: v3's regression
+#         head. Control: v3 MSE. RANK and PLR differ only in hinge vs logistic.
+#   A ranking score alone has no scale, so MSE anchors RANK and PLR to the 19
+#   levels. WKL, RANK and PLR are statistics of the whole batch, so they use
+#   v3's rule D3 (true batch 64, gradient checkpointing) -- the rule SOFTQWK
+#   uses in Part C and the batch train.py runs WKL at.
 #
 # -----------------------------------------------------------------------------
 #  barec_exact_v3_partA.py   (barec_exact_v3_partB.py and _partC.py are this
@@ -76,7 +77,7 @@
 #  HOW TO RUN (one part per Kaggle account, all three in parallel)
 #   Part A: CE, MSE, OLL15, EMD      Part B: SOFT2, SOFT3, SOFT4, SOFT5
 #   Part C: CORAL, CORAL_HEADLR, SOFTQWK
-#   Part D: LBL, WKL, RANK (this file)
+#   Part D: CORN, TSOFT12, LBL10 (run separately)   Part E: WKL, RANK, PLR (this file)
 #   - Accelerator: GPU (T4 x2 is fine -- this file uses exactly one GPU).
 #   - Internet ON. Paste the whole file as the FIRST and ONLY cell.
 #   - Save Version -> Save & Run All.
@@ -116,7 +117,7 @@
 #   - train.py:374 maps "CORAL" to a plain Trainer; CORAL follows Cao et al.
 #     2020 Eqs. 1, 4, 5.
 #   - WKL (train.py:87-114) is not run in Parts A-C: the author's instruction.
-#     Part D runs it, at the author's later request.
+#     Part E runs it, at the author's later request.
 #
 #  HARDWARE-FORCED DEVIATIONS -- nothing else
 #   D1. Batch 64 as micro-batch 16 x accumulation 4 on ONE GPU. 54,845 rows
@@ -140,7 +141,7 @@ from pathlib import Path
 
 T_START = time.time()
 
-PART = "D"   # Parts A, B and C differ only in this line; Part D also adds the new losses
+PART = "E"   # Parts A, B and C differ only in this line; Part E also adds the new losses
 
 SCRIPT_FAMILY = "barec_exact_v3"
 SCRIPT_VERSION = f"{SCRIPT_FAMILY}_part{PART} (2026-09-29)"
@@ -192,10 +193,9 @@ CONFIG = dict(
     fp16          = torch.cuda.is_available(),          # D2
 )
 
-# ---- Part D hyper-parameters (the only new values in this file)
-LBL_RHO     = 0.6        # Li et al. 2022 run scripts: 0.4 / 0.6 / 0.8 per dataset
+# ---- Part E hyper-parameters (the only new values in this file)
 RANK_MARGIN = 0.5        # Trokhymovych et al. 2024, Margin Ranking Loss margin m
-RANK_LAMBDA = 1.0        # ours: MSE + 1.0 * ranking
+RANK_LAMBDA = 1.0        # ours: MSE + 1.0 * ranking, for RANK and PLR alike
 
 EXPECTED_TRAIN_BATCH = 64
 KAGGLE_LIMIT_S = 12 * 3600          # Kaggle kills a commit at 43,200 s (observed on v2)
@@ -248,20 +248,19 @@ DECLARED_DEFAULTS = [
      "OURS, not a BAREC metric. Must be labelled as the thesis's own everywhere"),
     ("Kaggle split", "Parts A, B and C on three accounts, plus a 12-hour time guard",
      "OURS. Scheduling only; no arm's hyper-parameters change"),
-    ("LBL rho", LBL_RHO, "Li et al. 2022 tune rho per dataset (0.4, 0.6, 0.8); the middle value, no sweep"),
-    ("LBL text length", "whitespace tokens of the D3Tok text the model reads, TRAIN split only",
-     "the authors count len(text.split()) of their training texts"),
-    ("LBL coefficients", "c_k = round(L_k / sum L, 4), L_k = 0.25*(mean + min + median + max) length of level k",
-     "get_length_distribution_coefficient.py, generalised from 5 to 19 levels"),
     ("WKL", "train.py:87-114 exactly: log(numerator / denominator + 1e-7), quadratic weights",
      "BAREC's own WKLTrainer; de la Torre et al. 2018"),
-    ("WKL / RANK batch", "true batch 64, gradient checkpointing (D3)",
-     "both are statistics of the batch; train.py runs WKL at batch 64 on one device"),
+    ("WKL / RANK / PLR batch", "true batch 64, gradient checkpointing (D3)",
+     "all three are statistics of the batch; train.py runs WKL at batch 64 on one device"),
     ("RANK margin", RANK_MARGIN, "Trokhymovych et al. 2024 Margin Ranking Loss"),
-    ("RANK weight lambda", RANK_LAMBDA, "ours; loss = MSE + lambda * mean MRL over pairs, no sweep"),
-    ("RANK pairs", "every ordered pair (i, j) in the batch with y_i > y_j",
-     "equal-level pairs carry no order; a batch with one level adds 0"),
-    ("Part D dev-loss selection", "each arm's own loss; WKL and RANK on eval batches of 16",
+    ("RANK / PLR weight lambda", RANK_LAMBDA, "ours; loss = MSE + lambda * mean pair loss, no sweep"),
+    ("RANK / PLR pairs", "every ordered pair (i, j) in the batch with y_i > y_j",
+     "TF-Ranking's pairwise labels (l_i > l_j); a batch with one level adds 0"),
+    ("RANK / PLR pair reduction", "mean over the valid pairs of the batch",
+     "the same for both arms; TF-Ranking divides by all pair slots, a constant factor"),
+    ("PLR pairs across sentences", "pairs are formed inside the training batch",
+     "NPRM pairs versions of one article; BAREC has no parallel versions. Siamese scoring as in TRank"),
+    ("Part E dev-loss selection", "each arm's own loss, on eval batches of 16",
      "BAREC's rule, as train.py applies it to its own WKLTrainer"),
 ]
 
@@ -393,35 +392,7 @@ def loss_softqwk(logits, labels, sigma=1.0, **kw):
     return 1.0 - kappa
 
 
-# ----------------------------------------------------------------- 5b. Part D losses
-def lbl_coefficients(train_texts, train_labels, rho=LBL_RHO):
-    """Li, Wang & Wu 2022, get_length_distribution_coefficient.py for 19 levels:
-    per level, L_k = 0.25*mean + 0.25*min + 0.25*median + 0.25*max of the word
-    counts; c_k = round(L_k / sum L, 4); the loss weight is c_k ** rho."""
-    lengths = {k: [] for k in range(K)}
-    for text, y in zip(train_texts, train_labels):
-        lengths[int(y)].append(len(text.replace("\n", " ").split()))   # authors: re.sub(r"\n", " ", text)
-    weighted = []
-    for k in range(K):
-        L = sorted(lengths[k])
-        if not L:
-            weighted.append(0)
-            continue
-        weighted.append(0.25 * (sum(L) / len(L)) + 0.25 * L[0]
-                        + 0.25 * L[int(len(L) * 0.5)] + 0.25 * L[-1])
-    coef = [round(w / sum(weighted), 4) for w in weighted]
-    return np.array(coef, dtype=np.float64) ** rho, coef, weighted
-
-
-def loss_lbl(logits, labels, class_weights=None, **kw):
-    """LengthBalancedLoss.forward (Li et al. 2022): -sum_k lbl_k * onehot_k *
-    log_softmax_k, summed over levels, mean over the batch."""
-    z = _fp32(logits)
-    w = torch.as_tensor(class_weights, dtype=z.dtype, device=z.device)
-    logp = F.log_softmax(z, dim=1).gather(1, labels.unsqueeze(1)).squeeze(1)
-    return (-w[labels] * logp).mean()
-
-
+# ----------------------------------------------------------------- 5b. Part E losses
 def loss_wkl(logits, labels, **kw):
     """Weighted Kappa Loss, BAREC train.py:87-114 (de la Torre et al. 2018):
     log( sum_ik (y_i - k)^2 p_ik / (sum_k n_k (W @ sum_i p_i)_k / batch) + 1e-7 )."""
@@ -443,6 +414,19 @@ def loss_rank(logits, labels, margin=RANK_MARGIN, lam=RANK_LAMBDA, **kw):
     harder = (y.unsqueeze(1) > y.unsqueeze(0)).to(s.dtype)
     hinge = F.relu(margin - (s.unsqueeze(1) - s.unsqueeze(0)))
     rank = (hinge * harder).sum() / harder.sum().clamp(min=1.0)
+    return F.mse_loss(s, y) + lam * rank
+
+
+def loss_plr(logits, labels, lam=RANK_LAMBDA, **kw):
+    """MSE + lam * mean over batch pairs (i, j) with y_i > y_j of the pairwise
+    logistic loss log(1 + exp(-(s_i - s_j))), in TF-Ranking's stable form
+    relu(-x) + log1p(exp(-|x|)) (tfr PairwiseLogisticLoss, used by NPRM)."""
+    s = _fp32(logits).squeeze(-1)
+    y = labels.to(s.dtype)
+    harder = (y.unsqueeze(1) > y.unsqueeze(0)).to(s.dtype)
+    x = s.unsqueeze(1) - s.unsqueeze(0)
+    pair = F.relu(-x) + torch.log1p(torch.exp(-x.abs()))
+    rank = (pair * harder).sum() / harder.sum().clamp(min=1.0)
     return F.mse_loss(s, y) + lam * rank
 
 
@@ -495,24 +479,7 @@ def self_test_losses():
                              labels, sigma=1e-3))
     checks.append(("SoftQWK->sklearn", lit, got))
 
-    # --- Part D: LBL vs the authors' LengthBalancedLoss.forward, transcribed
-    lbl_w = torch.tensor(([0.0583, 0.113, 0.2451, 0.3017, 0.2818] * 4)[:K], dtype=torch.float64) ** 0.6
-    target_one_hot = F.one_hot(labels, K)
-    log_preds = F.log_softmax(logits, dim=-1)
-    lit = float((lbl_w * (-target_one_hot * log_preds)).sum(dim=-1).mean())
-    checks.append(("LBL", lit, float(loss_lbl(logits, labels, class_weights=lbl_w.numpy()))))
-    texts = [" ".join(["w"] * (3 + 2 * int(v) + (j % 4))) for j, v in enumerate(labels.tolist())]
-    got_w, coef, wl = lbl_coefficients(texts, labels.tolist(), rho=0.6)
-    lit_c = []
-    for k in range(K):
-        L = sorted(len(t.split()) for t, v in zip(texts, labels.tolist()) if v == k)
-        lit_c.append(0.0 if not L else 0.25 * sum(L) / len(L) + 0.25 * L[0] + 0.25 * L[int(len(L) * 0.5)] + 0.25 * L[-1])
-    lit_c = [round(i / sum(lit_c), 4) for i in lit_c]
-    checks.append(("LBL coefficients", 0.0, float(np.abs(np.array(coef) - np.array(lit_c)).max())))
-    checks.append(("LBL rho=0 == CE", float(loss_ce(logits, labels)),
-                   float(loss_lbl(logits, labels, class_weights=np.ones(K)))))
-
-    # --- Part D: WKL vs train.py:87-114 transcribed (cpu, float64, tensor copies dropped)
+    # --- Part E: WKL vs train.py:87-114 transcribed (cpu, float64, tensor copies dropped)
     num_classes = K
     y_pred = F.softmax(logits, dim=1)
     label_vec = torch.arange(0, num_classes, dtype=torch.float64)       # == torch.range(0, K-1)
@@ -535,7 +502,7 @@ def self_test_losses():
     lit = float(torch.log(numerator / denominator + 1e-7))
     checks.append(("WKL", lit, float(loss_wkl(logits, labels))))
 
-    # --- Part D: RANK vs a double loop and torch.nn.MarginRankingLoss
+    # --- Part E: RANK vs a double loop and torch.nn.MarginRankingLoss
     s = labels.to(torch.float64).unsqueeze(1) + torch.randn(n, 1, dtype=torch.float64) * 2
     mse = sum((float(s[i, 0]) - int(labels[i])) ** 2 for i in range(n)) / n
     ii, jj, tot = [], [], 0.0
@@ -552,10 +519,20 @@ def self_test_losses():
     one = torch.full((n,), 7)
     checks.append(("RANK one level", float(loss_mse(s, one)), float(loss_rank(s, one))))
 
+    # --- Part E: PLR vs a double loop of log(1 + exp(-(s_i - s_j))) and vs torch's
+    #     softplus; the logistic form of the same pairs RANK uses
+    tot = 0.0
+    for i, j in zip(ii, jj):
+        tot += math.log1p(math.exp(-(float(s[i, 0]) - float(s[j, 0]))))
+    checks.append(("PLR loop", mse + RANK_LAMBDA * tot / len(ii), float(loss_plr(s, labels))))
+    sp = F.softplus(-(s[ii, 0] - s[jj, 0])).mean()
+    checks.append(("PLR softplus", float(loss_mse(s, labels) + RANK_LAMBDA * sp), float(loss_plr(s, labels))))
+    checks.append(("PLR one level", float(loss_mse(s, one)), float(loss_plr(s, one))))
+
     print("  loss self-test: CE/OLL15/EMD/SOFT vs train.py's literal loops; "
           "CORAL vs closed-form BCE; SoftQWK vs 1 - sklearn QWK")
-    print("  Part D: LBL vs the authors' LengthBalancedLoss and coefficient script; "
-          "WKL vs train.py:87-114; RANK vs a loop and torch MarginRankingLoss")
+    print("  Part E: WKL vs train.py:87-114; RANK vs a loop and torch MarginRankingLoss; "
+          "PLR vs a loop and softplus")
     bad = []
     for name, a, b in checks:
         diff = abs(a - b)
@@ -941,13 +918,14 @@ ALL_ARMS = [
          target="ablation: head lr 1e-3, encoder 5e-5"),
     dict(part="C", name="SOFTQWK", head="reg", loss=loss_softqwk, group="softqwk", kw=dict(sigma=1.0),
          two_phase=True, batch_statistic=True, target="ours (STBW 2025)"),
-    dict(part="D", name="LBL", head="cls", loss=loss_lbl, group="core", kw=dict(rho=LBL_RHO),
-         target="Li, Wang & Wu, EMNLP 2022 (English, Chinese); control CE"),
-    dict(part="D", name="WKL", head="cls", loss=loss_wkl, group="core", batch_statistic=True,
+    dict(part="E", name="WKL", head="cls", loss=loss_wkl, group="core", batch_statistic=True,
          target="de la Torre et al. 2018; readability: Lim & Lee, BEA 2024; BAREC train.py:87-114"),
-    dict(part="D", name="RANK", head="reg", loss=loss_rank, group="core", batch_statistic=True,
+    dict(part="E", name="RANK", head="reg", loss=loss_rank, group="core", batch_statistic=True,
          kw=dict(margin=RANK_MARGIN, lam=RANK_LAMBDA),
-         target="Trokhymovych et al. 2024; Lee & Vajjala, Findings of ACL 2022; control MSE"),
+         target="Trokhymovych et al. 2024 (margin ranking, 14 languages); control MSE"),
+    dict(part="E", name="PLR", head="reg", loss=loss_plr, group="core", batch_statistic=True,
+         kw=dict(lam=RANK_LAMBDA),
+         target="Lee & Vajjala, Findings of ACL 2022 (NPRM pairwise logistic); control MSE"),
 ]
 ARMS = [a for a in ALL_ARMS if a["part"] == PART]
 
@@ -1216,14 +1194,6 @@ def main():
     bias_init = coral_bias_init(ds["train"]["labels"])
     print(f"  CORAL bias init: spread {bias_init.max()-bias_init.min():.2f}, "
           f"ordered={bool(np.all(np.diff(bias_init) <= 0))}")
-    for a in ARMS:
-        if a["loss"] is loss_lbl:
-            w, coef, _ = lbl_coefficients(ds["train"]["text"], ds["train"]["labels"], a["kw"]["rho"])
-            a["kw"]["class_weights"] = w
-            a["kw"]["length_coefficients"] = np.asarray(coef)
-            print(f"  LBL length coefficients (levels 1-19): {coef}")
-            print(f"  LBL weights c_k^{a['kw']['rho']}: {np.round(w, 3).tolist()}")
-            a["target"] += f" | rho {a['kw']['rho']}, length coefficients {coef}"
 
     print(f"\n[arms -- PART {PART}]")
     arm_minutes = []
