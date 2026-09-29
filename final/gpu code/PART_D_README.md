@@ -2,8 +2,15 @@
 
 `barec_exact_v3_partD.py` is your v3 script with `PART = "D"` and three losses
 added. Data, splits, model, heads, training settings, seed, metrics, checkpoint
-selection and guards are the v3 code, unchanged. Only four v3 lines were edited:
-the part letter, the version date, one import and the WKL note in the header.
+selection, report and guards are the v3 code, unchanged, and follow BAREC
+section 5.5: learning rate 5e-5, batch 64, six epochs, best epoch by evaluation
+loss.
+
+In the Python code, only two v3 lines differ: the part letter and the version
+date. Everything else is added: the three loss functions, their self-tests,
+their three arms, their settings, and five lines in `main` that compute the LBL
+weights from the training split. The three arms are in v3's "core" group because
+they use the core training procedure.
 
 | Arm | Loss | Paper | Languages in the paper | Formula taken from | Compare with |
 |---|---|---|---|---|---|

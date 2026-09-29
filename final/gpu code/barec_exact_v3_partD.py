@@ -134,7 +134,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"      # FIX 1 -- must run before torch is imported
 
-import sys, json, gc, time, math, shutil, inspect, subprocess, platform, re
+import sys, json, gc, time, math, shutil, inspect, subprocess, platform
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -262,7 +262,7 @@ DECLARED_DEFAULTS = [
     ("RANK pairs", "every ordered pair (i, j) in the batch with y_i > y_j",
      "equal-level pairs carry no order; a batch with one level adds 0"),
     ("Part D dev-loss selection", "each arm's own loss; WKL and RANK on eval batches of 16",
-     "BAREC's rule; it only compares epochs of one arm with each other"),
+     "BAREC's rule, as train.py applies it to its own WKLTrainer"),
 ]
 
 SMOKE = False          # True -> 2000 train rows, 1 epoch, 12 dev/test rows per level. Plumbing only.
@@ -400,7 +400,7 @@ def lbl_coefficients(train_texts, train_labels, rho=LBL_RHO):
     counts; c_k = round(L_k / sum L, 4); the loss weight is c_k ** rho."""
     lengths = {k: [] for k in range(K)}
     for text, y in zip(train_texts, train_labels):
-        lengths[int(y)].append(len(re.sub(r"\n", " ", text).split()))
+        lengths[int(y)].append(len(text.replace("\n", " ").split()))   # authors: re.sub(r"\n", " ", text)
     weighted = []
     for k in range(K):
         L = sorted(lengths[k])
@@ -941,11 +941,11 @@ ALL_ARMS = [
          target="ablation: head lr 1e-3, encoder 5e-5"),
     dict(part="C", name="SOFTQWK", head="reg", loss=loss_softqwk, group="softqwk", kw=dict(sigma=1.0),
          two_phase=True, batch_statistic=True, target="ours (STBW 2025)"),
-    dict(part="D", name="LBL", head="cls", loss=loss_lbl, group="new", kw=dict(rho=LBL_RHO),
+    dict(part="D", name="LBL", head="cls", loss=loss_lbl, group="core", kw=dict(rho=LBL_RHO),
          target="Li, Wang & Wu, EMNLP 2022 (English, Chinese); control CE"),
-    dict(part="D", name="WKL", head="cls", loss=loss_wkl, group="new", batch_statistic=True,
+    dict(part="D", name="WKL", head="cls", loss=loss_wkl, group="core", batch_statistic=True,
          target="de la Torre et al. 2018; readability: Lim & Lee, BEA 2024; BAREC train.py:87-114"),
-    dict(part="D", name="RANK", head="reg", loss=loss_rank, group="new", batch_statistic=True,
+    dict(part="D", name="RANK", head="reg", loss=loss_rank, group="core", batch_statistic=True,
          kw=dict(margin=RANK_MARGIN, lam=RANK_LAMBDA),
          target="Trokhymovych et al. 2024; Lee & Vajjala, Findings of ACL 2022; control MSE"),
 ]
@@ -994,8 +994,6 @@ def run_arm(arm, tok, enc, collator, bias_init):
     res = {"arm": name, "group": arm["group"], "target": arm.get("target"), "head": arm["head"],
            "micro_batch": micro, "grad_accum": accum, "gradient_checkpointing": gckpt,
            "epochs": epochs, "loss_is_batch_statistic": bool(arm.get("batch_statistic"))}
-    res["loss_kwargs"] = {k: (np.asarray(v).tolist() if isinstance(v, np.ndarray) else v)
-                          for k, v in arm.get("kw", {}).items()}
 
     def make_trainer(loss_fn, loss_kw, n_epochs, sub, model_init=None, model=None,
                      micro_bs=micro, accum_=accum, gckpt_=gckpt):
@@ -1130,7 +1128,6 @@ def report():
         ("core", "CORE ARMS"),
         ("softqwk", "SOFTQWK -- different training procedure, NOT directly comparable to CORE"),
         ("ablation", "ABLATIONS -- excluded from the fair comparison"),
-        ("new", "PART D -- NEW LOSSES from readability papers in other languages"),
     ]
     for split in ("dev", "test"):
         print(f"\n=== PART {PART} -- BAREC {split.upper()} set (AraBERTv2 + D3Tok) ===")
@@ -1226,6 +1223,7 @@ def main():
             a["kw"]["length_coefficients"] = np.asarray(coef)
             print(f"  LBL length coefficients (levels 1-19): {coef}")
             print(f"  LBL weights c_k^{a['kw']['rho']}: {np.round(w, 3).tolist()}")
+            a["target"] += f" | rho {a['kw']['rho']}, length coefficients {coef}"
 
     print(f"\n[arms -- PART {PART}]")
     arm_minutes = []
