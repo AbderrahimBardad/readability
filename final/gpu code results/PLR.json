@@ -1,0 +1,248 @@
+{
+  "arm": "PLR",
+  "group": "core",
+  "target": "Lee & Vajjala, Findings of ACL 2022 (NPRM pairwise logistic); control MSE",
+  "head": "reg",
+  "micro_batch": 64,
+  "grad_accum": 1,
+  "gradient_checkpointing": true,
+  "epochs": 6,
+  "loss_is_batch_statistic": true,
+  "history": [
+    {
+      "eval_loss": 4.1878228187561035,
+      "eval_qwk": 0.8231772465560143,
+      "eval_acc19": 0.2830369357045144,
+      "eval_acc19_pm1": 0.6558139534883721,
+      "eval_dist": 1.3566347469220246,
+      "eval_acc7": 0.4987688098495212,
+      "eval_acc5": 0.6120383036935705,
+      "eval_acc3": 0.7291381668946648,
+      "eval_macro_f1": 0.17011443572979446,
+      "eval_far_ge3": 0.1506155950752394,
+      "eval_far_ge5": 0.03734610123119015,
+      "eval_runtime": 10.3981,
+      "eval_samples_per_second": 703.014,
+      "eval_steps_per_second": 43.95,
+      "epoch": 1.0,
+      "step": 857
+    },
+    {
+      "eval_loss": 3.8370583057403564,
+      "eval_qwk": 0.8260923648406947,
+      "eval_acc19": 0.30697674418604654,
+      "eval_acc19_pm1": 0.6976744186046512,
+      "eval_dist": 1.2694938440492476,
+      "eval_acc7": 0.5549931600547195,
+      "eval_acc5": 0.6351573187414501,
+      "eval_acc3": 0.7388508891928864,
+      "eval_macro_f1": 0.18209669270377193,
+      "eval_far_ge3": 0.1429548563611491,
+      "eval_far_ge5": 0.03337893296853625,
+      "eval_runtime": 9.7871,
+      "eval_samples_per_second": 746.905,
+      "eval_steps_per_second": 46.694,
+      "epoch": 2.0,
+      "step": 1714
+    },
+    {
+      "eval_loss": 4.103961944580078,
+      "eval_qwk": 0.830017024536247,
+      "eval_acc19": 0.3679890560875513,
+      "eval_acc19_pm1": 0.7166894664842681,
+      "eval_dist": 1.2203830369357045,
+      "eval_acc7": 0.5573187414500684,
+      "eval_acc5": 0.653625170998632,
+      "eval_acc3": 0.7418604651162791,
+      "eval_macro_f1": 0.28412826762220245,
+      "eval_far_ge3": 0.1381668946648427,
+      "eval_far_ge5": 0.04500683994528044,
+      "eval_runtime": 10.1324,
+      "eval_samples_per_second": 721.45,
+      "eval_steps_per_second": 45.103,
+      "epoch": 3.0,
+      "step": 2571
+    },
+    {
+      "eval_loss": 4.297001838684082,
+      "eval_qwk": 0.820516299235623,
+      "eval_acc19": 0.4110807113543092,
+      "eval_acc19_pm1": 0.7192886456908345,
+      "eval_dist": 1.1998632010943913,
+      "eval_acc7": 0.5880984952120383,
+      "eval_acc5": 0.6595075239398085,
+      "eval_acc3": 0.7428180574555403,
+      "eval_macro_f1": 0.30220741815367613,
+      "eval_far_ge3": 0.1448700410396717,
+      "eval_far_ge5": 0.0493844049247606,
+      "eval_runtime": 9.834,
+      "eval_samples_per_second": 743.343,
+      "eval_steps_per_second": 46.472,
+      "epoch": 4.0,
+      "step": 3428
+    },
+    {
+      "eval_loss": 4.086994171142578,
+      "eval_qwk": 0.8287206013153876,
+      "eval_acc19": 0.41477428180574555,
+      "eval_acc19_pm1": 0.7238030095759234,
+      "eval_dist": 1.1722298221614227,
+      "eval_acc7": 0.5984952120383037,
+      "eval_acc5": 0.6626538987688099,
+      "eval_acc3": 0.7478796169630643,
+      "eval_macro_f1": 0.32605593519306053,
+      "eval_far_ge3": 0.140218878248974,
+      "eval_far_ge5": 0.04473324213406293,
+      "eval_runtime": 9.5797,
+      "eval_samples_per_second": 763.069,
+      "eval_steps_per_second": 47.705,
+      "epoch": 5.0,
+      "step": 4285
+    },
+    {
+      "eval_loss": 4.283537864685059,
+      "eval_qwk": 0.8261591567553741,
+      "eval_acc19": 0.41668946648426813,
+      "eval_acc19_pm1": 0.7207934336525308,
+      "eval_dist": 1.1912448700410396,
+      "eval_acc7": 0.5968536251709986,
+      "eval_acc5": 0.6645690834473325,
+      "eval_acc3": 0.7474692202462381,
+      "eval_macro_f1": 0.33164816390467733,
+      "eval_far_ge3": 0.14309165526675788,
+      "eval_far_ge5": 0.047332421340629274,
+      "eval_runtime": 10.3408,
+      "eval_samples_per_second": 706.912,
+      "eval_steps_per_second": 44.194,
+      "epoch": 6.0,
+      "step": 5142
+    }
+  ],
+  "selected_by": "lowest dev eval_loss over all epochs, no early stopping (train.py:481-483)",
+  "selected_epoch": 2.0,
+  "realised_train_batch": 64,
+  "steps_per_epoch_observed": [
+    857,
+    857,
+    857,
+    857,
+    857,
+    857
+  ],
+  "steps_per_epoch_expected": [
+    857
+  ],
+  "steps_per_epoch_ok": true,
+  "dev": {
+    "qwk": 0.8260923648406947,
+    "acc19": 0.30697674418604654,
+    "acc19_pm1": 0.6976744186046512,
+    "dist": 1.2694938440492476,
+    "acc7": 0.5549931600547195,
+    "acc5": 0.6351573187414501,
+    "acc3": 0.7388508891928864,
+    "macro_f1": 0.18209669270377193,
+    "far_ge3": 0.1429548563611491,
+    "far_ge5": 0.03337893296853625
+  },
+  "test": {
+    "qwk": 0.8368237275744319,
+    "acc19": 0.30194894317869886,
+    "acc19_pm1": 0.7073840241559155,
+    "dist": 1.2193247323634366,
+    "acc7": 0.5602525391161131,
+    "acc5": 0.6318967883612407,
+    "acc3": 0.7189129838045567,
+    "macro_f1": 0.186260330567116,
+    "far_ge3": 0.1307987922042273,
+    "far_ge5": 0.025391161130936042
+  },
+  "selection_check": {
+    "logged_at_selected_epoch": {
+      "qwk": 0.8260923648406947,
+      "acc19": 0.30697674418604654,
+      "dist": 1.2694938440492476
+    },
+    "reloaded_snapshot_dev": {
+      "qwk": 0.8260923648406947,
+      "acc19": 0.30697674418604654,
+      "dist": 1.2694938440492476
+    },
+    "abs_diff": {
+      "qwk": 0.0,
+      "acc19": 0.0,
+      "dist": 0.0
+    },
+    "exact": true
+  },
+  "ablation_qwk_selected": {
+    "selected_by": "highest dev QWK (ZAI/STBW rule, NOT BAREC's); ablation, dev leaks",
+    "selected_epoch": 3.0,
+    "dev": {
+      "qwk": 0.830017024536247,
+      "acc19": 0.3679890560875513,
+      "acc19_pm1": 0.7166894664842681,
+      "dist": 1.2203830369357045,
+      "acc7": 0.5573187414500684,
+      "acc5": 0.653625170998632,
+      "acc3": 0.7418604651162791,
+      "macro_f1": 0.28412826762220245,
+      "far_ge3": 0.1381668946648427,
+      "far_ge5": 0.04500683994528044
+    },
+    "test": {
+      "qwk": 0.8364211864935619,
+      "acc19": 0.37455393906121326,
+      "acc19_pm1": 0.7226187208344771,
+      "dist": 1.1765028822399122,
+      "acc7": 0.5558605544880593,
+      "acc5": 0.6419160032939885,
+      "acc3": 0.7180894866867966,
+      "macro_f1": 0.3043284034790451,
+      "far_ge3": 0.1351907768322811,
+      "far_ge5": 0.03897886357397749
+    },
+    "selection_check": {
+      "logged_at_selected_epoch": {
+        "qwk": 0.830017024536247,
+        "acc19": 0.3679890560875513,
+        "dist": 1.2203830369357045
+      },
+      "reloaded_snapshot_dev": {
+        "qwk": 0.830017024536247,
+        "acc19": 0.3679890560875513,
+        "dist": 1.2203830369357045
+      },
+      "abs_diff": {
+        "qwk": 0.0,
+        "acc19": 0.0,
+        "dist": 0.0
+      },
+      "exact": true
+    }
+  },
+  "provenance": {
+    "family": "barec_exact_v3",
+    "script": "barec_exact_v3_partE (2026-09-29)",
+    "part": "E",
+    "utc": "2026-09-29T07:36:36+00:00",
+    "python": "3.12.13",
+    "torch": "2.10.0+cu128",
+    "transformers": "5.0.0",
+    "datasets": "5.0.0",
+    "accelerate": "1.13.0",
+    "cuda_visible_devices": "0",
+    "cuda_device_count": 1,
+    "gpu_name": "Tesla T4",
+    "dataset": "CAMeL-Lab/BAREC-Corpus-v1.0",
+    "dataset_sha": "3a336527783c4c3311a900429203bf4e25c7a80f",
+    "smoke": false,
+    "n_gpu": 1,
+    "per_device_train_batch": 64,
+    "grad_accum": 1,
+    "realised_train_batch": 64,
+    "eval_batch": 16,
+    "fp16": true
+  },
+  "minutes": 35.0
+}
