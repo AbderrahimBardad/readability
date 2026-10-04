@@ -82,14 +82,16 @@ modelling, not as mistakes. Most of those projects were built for a different pu
 Added seven entries: `tahathomure2017`, `lim-lee-2024-improving`, `trokhymovych2024readability`,
 `shi2023corn`, `li-etal-2022-unified`, `zeng-etal-2022-enhancing` and `burges2005learning`.
 
-## 6. Things to check
+## 6. Later fixes
 
-- **Missing result files.** TSOFT12, LBL10 and WKL have no result files in this version, so they
-  are not in the tables or the text. Put their JSON files in `gpu code results/new losses/` and
-  rerun the generator. Their rows then appear in the tables automatically, but the prose still
-  has to be written.
-- **CORN self-test.** Chapter 3 has a `% TODO` comment. If the Part D script self-tests CORN,
-  mention it there.
+- **Run count.** Chapter 4 now opens with "the fourteen training runs", matching chapter 3.
+- **CORN check.** Chapter 3 now says that the CORN loss and its decoding are checked against the
+  authors' published training loop and the chain rule, as Part D does before training.
+- **Reported losses.** Only CORN, RANK and PLR are reported. TSOFT12, LBL10 and WKL are not part
+  of the thesis.
+
+## 7. Things to check
+
 - **Ranking margin.** The RANK margin of 0.5 comes from the research summary of Trokhymovych et
   al. Confirm it in their paper.
 - **DARES labels.** The statement that each DARES text is labelled with the grade of its

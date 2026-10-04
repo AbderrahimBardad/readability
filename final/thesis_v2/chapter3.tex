@@ -489,9 +489,9 @@ instead of 64, so, like the second phase of Soft-QWK, they are trained with a tr
 sentences and gradient checkpointing (Section~\ref{sec:meth-protocol}). The number of optimiser
 steps per epoch is unchanged. The two ranking losses are checked before training against a
 double loop over the pairs and against the PyTorch implementation of the margin ranking loss and
-of the softplus function, to better than $10^{-9}$.
-% TODO: if the Part D script also self-tests CORN (for example against coral_pytorch's corn_loss),
-% add it to the sentence above.
+of the softplus function, to better than $10^{-9}$. The CORN loss is checked in the same way
+against the training loop published with the paper~\cite{shi2023corn}, and its decoding against
+the chain rule applied one sentence at a time.
 
 \section{Cut-Point Initialisation for CORAL}
 \label{sec:meth-coral-init}
