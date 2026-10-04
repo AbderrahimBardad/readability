@@ -1,0 +1,205 @@
+\chapter{Conclusion and Future Work}
+\label{chap:conclusion}
+
+\section{Summary of the Work}
+
+This thesis asked which ordinal head and which loss function serve fine-grained Arabic
+readability assessment best, and whether the errors they make are near misses or far misses. The
+question came from a comparison that the literature leaves open: the BAREC benchmark
+\cite{elmadani2025barec} compares distance-aware losses but has no ordinal head and no
+metric-aligned objective, while the two shared-task systems closest to this work add a CORAL
+head \cite{nazzal2025zai} and a differentiable kappa objective \cite{trigui2025stbw} but each
+does so inside its own pipeline, with its own input, its own selection rule and its own
+evaluation data, so neither can be read as a measurement of what its ordinal mechanism
+contributes.
+
+The answer was pursued by building one pipeline and changing one thing at a time. The corpus,
+the splits, the segmented input, the AraBERTv2 encoder and the whole training protocol were
+taken from the benchmark script and held fixed, down to the library defaults that the script
+does not state; the prediction head and the loss function were the only components allowed to
+vary. Eleven runs were carried out on this basis: nine that differ only in head and loss, one
+two-phase metric-aligned run, and one ablation on the learning rate of the CORAL head. Two more
+ablations re-evaluated saved models under a tuned decision threshold and under the alternative
+checkpoint selection rule, and a second track trained linear heads on frozen features over five
+seeds, which both satisfies the CPU-friendly requirement of the research brief and supplies the
+variance estimates that a single-seed protocol cannot.
+
+Before any of it was interpreted, the implementation was tested against the sources rather than
+assumed to match them. Every loss was checked against an independent implementation to better
+than $10^{-9}$, the metric code was checked against its definitions, the split sizes and the
+collapse mappings were checked against the corpus itself, and each run recorded the accelerator
+count, the realised batch, the observed number of optimiser steps and a comparison between the
+reloaded checkpoint and the training log. That record is what allows the numbers in
+Chapter~\ref{chap:results} to be quoted at two decimal places.
+
+\section{Findings}
+
+\subsection{The Pipeline Reproduces the Benchmark}
+
+Seven of the eight losses that the benchmark also reports land within 1.5 QWK points of their
+published development values, with a mean absolute difference of \gapQwkMean\ points, and
+cross-entropy, EMD and ordinal log loss land within \gapQwkCE, \gapQwkEMD\ and \gapQwkOLL\
+points. The eighth, the regression method, is \gapQwkMSE\ points below its published value under
+the benchmark's own selection rule, and the per-epoch values show why: its development QWK
+reaches \qwkseldevQwkMSE\ two epochs after its development loss bottoms out, and at that epoch
+its test QWK is \qwkseltestQwkMSE\ against the published 84.4. The pipeline therefore
+reproduces the published work, and the one visible discrepancy is a property of the selection
+rule rather than of the implementation.
+
+\subsection{Ordinal Mechanisms Help, and They Are Equivalent among Themselves}
+
+Every ordinal-aware objective except one soft-label setting beats the ordinal-blind baseline,
+by up to three QWK points on the development set and four on the test set. The leading group
+consists of four objectives: the CORAL head (\devQwkCoral\ development, \testQwkCoral\ test),
+the two-phase metric-aligned schedule (\devQwkSoftqwk\ and \testQwkSoftqwk), distance-weighted
+ordinal log loss (\devQwkOLL\ and \testQwkOLL) and plain regression (\devQwkMSE\ and
+\testQwkMSE). The differences inside that group are a few tenths of a QWK point, they do not
+keep the same order across the two splits, and each method was trained once, so this thesis
+declines to name a single winner. The defensible statement is that the ordinal head and the
+metric-aligned objective reach the level of the best distance-aware loss under an identical
+protocol, which is what the research brief asked, and that nothing in these results shows any
+of them to be better than the others.
+
+\subsection{The Metric Rewards Removing Far Misses, Not Reducing Average Error}
+
+Separating the error distances changed the picture that a single metric gives. The methods that
+lead on QWK are not the methods that predict most levels exactly, and they are not the methods
+with the smallest average error either. The lowest mean distance in the study,
+\devDistSoftTwo\ levels, and the highest exact accuracy, \devAccSoftTwo\ per cent, both belong
+to a soft-label configuration two QWK points behind the leaders, whose own mean distances are
+the worst in the table. What the leaders do is control the tail: CORAL has the fewest errors of
+three levels or more on both splits (\devFarThreeCoral\ per cent on development,
+\testFarThreeCoral\ on test) and the regression method the fewest of five levels or more
+(\devFarFiveMSE\ and \testFarFiveMSE), while cross-entropy is worst on both counts.
+
+This is a usable result rather than a curiosity. A reader who needs a text placed within a
+narrow band should choose an ordinal head or a regression head; a reader who needs the exact
+level should choose a soft-label loss and accept two QWK points less agreement. Reporting QWK
+alone, as the benchmark and the shared task do, hides a difference of nearly twenty points of
+exact accuracy between methods whose QWK differs by two.
+
+\subsection{A CORAL Head Needs Its Cut-Points Initialised, Not Learned}
+
+Under the benchmark protocol, the 18 cut-points of the CORAL head never moved further than
+\cutMoveFineCoral\ from their initial values, against a fitted spread of \cutSpreadCoral\
+between the highest and the lowest. The reason is arithmetic: six epochs of \stepsPerEpoch\
+steps at a learning rate of $5\times10^{-5}$ decaying to zero sum to a travel budget of
+\lrSumEncoder, so a cut-point starting at zero cannot reach a value near $-6$. Initialising the
+cut-points from the cumulative label frequencies of the training split, which is the one
+element of the method taken from neither the benchmark nor the two shared-task papers, removes
+the problem instead of spending the budget on it, and it keeps the cut-points correctly ordered
+throughout training.
+
+Two further experiments support the diagnosis from both sides. Raising the head learning rate
+alone to $10^{-3}$, which multiplies the budget to \lrSumHeadlr, lets the cut-points move by
+\cutMoveCoralHeadlr\ and raises development QWK by \coralHeadlrDevGain\ points and test QWK by
+\coralHeadlrTestGain; and on frozen features, where the head budget is \cpuLrSum, the
+initialisation makes a difference of at most \cpuZeroInitDiffMean\ QWK points, that is, none.
+The initialisation is therefore a remedy for a specific arithmetic situation, and a
+head-specific learning rate appears to be the better remedy where it is available.
+
+\subsection{The Checkpoint Selection Rule Has to Be Held Fixed}
+
+Selecting on development QWK rather than development loss is worth up to
+\qwkselTestGainMax\ test QWK points, and what it is worth is not uniform: it gives
+\qwkselTestGainSoftThree\ points to a soft-label setting and \qwkselTestGainCE\ to
+cross-entropy, but only \qwkselTestGainCoral\ to CORAL and nothing at all to ordinal log loss,
+EMD or the two-phase schedule. The rule helps exactly those methods whose loss is least aligned
+with the metric. Any comparison between published systems that use different rules is therefore
+partly a comparison of rules, and a like-for-like comparison has to fix the rule first. A
+related, smaller finding is that the tuned decision threshold which the CORAL system reports as
+a source of gain contributes \zaiTestGainCoral\ test QWK points here, once the cut-points carry
+the label frequencies.
+
+\subsection{A Frozen-Feature Study Cannot Stand In for a Fine-Tuning Study}
+
+On frozen features the seed hardly matters, with a standard deviation over five seeds of at most
+\cpuStdMaxQwk\ QWK points for every method but one, and the exception, ordinal log loss at
+\cpuStdOll\ points, is itself informative about that loss. But the ranking of the losses does
+not survive freezing: the rank correlation with the fine-tuned ranking is
+\cpuSpearmanPooler\ on pooled features and \cpuSpearmanMean\ on mean-pooled features. The cheap
+protocol answers questions about variance and about CPU-friendly training; it does not answer
+the question about which loss to use when the encoder can adapt.
+
+\section{Contributions}
+
+\begin{enumerate}
+\item A controlled comparison of nine head and loss configurations for 19-level Arabic
+readability on one fixed pipeline, extending the benchmark's four losses with the CORAL head,
+the four soft-label settings and a metric-aligned two-phase objective, and reporting them in one
+table on both official splits.
+\item A verified reproduction of the benchmark's loss comparison, with the one visible
+discrepancy traced to the checkpoint selection rule.
+\item An initialisation of the CORAL cut-points from training label frequencies, with a
+quantitative argument from the travel budget of the schedule, a direct measurement of how far
+the cut-points actually move, and two ablations that test the argument from opposite directions.
+\item Two metrics of error distance, the share of errors of at least three and at least five
+levels, which make the near-miss and far-miss behaviour of each loss visible, and the finding
+that QWK leadership is bought by removing far misses rather than by reducing average error.
+\item A quantification of how much the checkpoint selection rule and the CORAL decision
+threshold are worth, which is what makes published systems with different protocols comparable.
+\item A frozen-backbone track that satisfies the CPU-friendly requirement of the research
+brief, supplies five-seed variance estimates, and shows that the loss ranking does not transfer
+between the two regimes.
+\item A reproducibility record: verified losses and metrics, asserted data, recorded batch
+composition and optimiser steps, pinned corpus and encoder revisions, and a checkpoint check on
+every reported number.
+\end{enumerate}
+
+\section{Limitations}
+
+Section~\ref{sec:res-limits} states the limitations in full. The three that bound the
+conclusions most tightly are: one seed per method in the fine-tuning track, so that differences
+of a few tenths of a QWK point are not measurements; mixed precision, where the benchmark uses
+single precision; and the absence of a zero-initialised CORAL run under the fine-tuning
+protocol, which would be the direct test of the cut-point argument that the measurements and
+the two ablations only support indirectly.
+
+\section{Future Work}
+
+\begin{enumerate}
+\item \textbf{Repeat the comparable group over several seeds.} This is the single most valuable
+next step, and the cheapest to justify: at eleven runs of roughly half an hour each on one
+mid-range accelerator, five seeds for the nine comparable methods is a day of computation and
+would turn the leading group from an observation into a measurement.
+
+\item \textbf{Run CORAL with zero-initialised cut-points under the fine-tuning protocol.} One
+run would convert the cut-point argument from a supported diagnosis into a direct result.
+
+\item \textbf{Separate the head learning rate from the encoder learning rate for every method.}
+The ablation here suggests that the protocol's single learning rate, chosen for an encoder,
+underserves any head with parameters that must reach specific values. Ordinal log loss and the
+soft-label family may be affected in the same way as CORAL.
+
+\item \textbf{Give every method a two-phase schedule.} The metric-aligned objective was tested
+as its authors define it, which leaves open whether a second phase of Soft-QWK would also
+improve CORAL or ordinal log loss. The comparison would then be between objectives under
+identical schedules.
+
+\item \textbf{Report the error distance distribution as standard.} The far-miss metrics
+introduced here cost nothing to compute and expose behaviour that QWK and mean distance both
+hide; a per-level error analysis, of the kind the benchmark reports for its best model, would
+extend this to the question of \emph{where} on the 19-level scale each loss fails.
+
+\item \textbf{Extend beyond one encoder and one granularity.} The comparison is confined to
+AraBERTv2 at sentence level. Whether the same ordinal mechanisms behave the same way on other
+Arabic encoders, and at document level, is untested here.
+\end{enumerate}
+
+\section{Closing Remarks}
+
+Fine-grained Arabic readability assessment is a task on which two expert annotators agree
+exactly six times in ten and reach a pairwise agreement of \iaaPairwiseQwk\ QWK
+\cite{elmadani2025barec}. Against that background, the best test agreement obtained in this work,
+\testQwkCoralHeadlr, sits above the agreement of two annotators with each other and below the
+agreement of an annotator with the adjudicated label, which is where the remaining room for
+improvement lies.
+
+The practical lesson of the thesis is narrower than a leaderboard result and more useful for
+building a system. Choosing an ordinal mechanism does matter: it is worth several QWK points
+over an ordinal-blind baseline, and it buys those points by not making large mistakes. But
+among the ordinal mechanisms that are properly implemented and properly initialised, the
+evidence here does not separate them, while two things that are usually treated as
+implementation details, the checkpoint selection rule and the learning rate given to the head,
+are worth as much as the choice of loss. A comparison that does not hold those fixed is
+measuring the protocol rather than the method.

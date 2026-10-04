@@ -1,0 +1,689 @@
+\chapter{Proposed Methodology}
+\label{chap:methodology}
+
+\section{Introduction}
+
+This chapter describes how the comparison announced in Chapter~\ref{chap:introduction} is
+carried out. The question is narrow on purpose: on one fixed corpus, one fixed encoder and one
+fixed training protocol, what changes when only the prediction head and the loss function
+change? Answering it requires that everything else stay identical, so most of this chapter is
+concerned with what was held fixed and with how that was verified.
+
+Section~\ref{sec:meth-overview} states the design and the two experimental tracks.
+Section~\ref{sec:meth-data} describes the BAREC corpus, the official splits and the checks run
+on the loaded data. Section~\ref{sec:meth-input} describes the D3Tok input representation.
+Section~\ref{sec:meth-heads} describes the encoder and the three prediction heads.
+Section~\ref{sec:meth-losses} gives the exact form of every loss function, together with the
+numerical safeguards and the tests that verify each implementation.
+Section~\ref{sec:meth-coral-init} presents the cut-point initialisation for CORAL, which is a
+contribution of this thesis. Section~\ref{sec:meth-protocol} states the training protocol and
+every point at which the implementation departs from the published BAREC script.
+Section~\ref{sec:meth-methods} lists the methods compared and the ablations.
+Section~\ref{sec:meth-metrics} defines the evaluation metrics.
+Section~\ref{sec:meth-frozen} describes the frozen-backbone track that answers the
+CPU-friendly requirement of the research brief, and Section~\ref{sec:meth-impl} reports the
+implementation, the hardware and the reproducibility record.
+
+\section{Experimental Design}
+\label{sec:meth-overview}
+
+The experiments follow the pipeline of the BAREC benchmark \cite{elmadani2025barec}, whose
+training script is treated here as the specification of the protocol. The corpus, the input
+representation, the encoder, the optimiser, the learning rate, the number of epochs, the batch
+size, the schedule, the random seed and the checkpoint selection rule are the same for every
+method. Two components vary: the prediction head, which turns a sentence representation into
+either 19 scores, one continuous value or 18 cumulative scores, and the loss function applied
+to that output. This isolation is the reason the comparison can be attributed to the ordinal
+mechanism rather than to a difference in tuning.
+
+Two tracks are reported.
+
+\begin{enumerate}
+\item \textbf{Fine-tuning track (main results).} The whole encoder is fine-tuned, exactly as in
+the BAREC benchmark. This track is the only one whose numbers are comparable with the published
+tables, and it carries the answer to the research question.
+
+\item \textbf{Frozen-backbone track.} The encoder is run once in inference mode, its sentence
+features are cached, and only a linear head is trained on those cached features. Head training
+takes minutes on a laptop processor, which satisfies the CPU-friendly setting requested in the
+research brief, and it is cheap enough to repeat over five random seeds, so every number in
+that track is reported with a standard deviation. Because the encoder never adapts to the task,
+these numbers are far below the fine-tuning track and are never compared with it or with the
+published tables.
+\end{enumerate}
+
+A deliberate limitation of the fine-tuning track should be stated at the outset: each method is
+trained once, with the seed fixed by the reference protocol at 42. The frozen track is the part
+of this work that reports variance.
+
+\section{Data}
+\label{sec:meth-data}
+
+\subsection{The BAREC Corpus}
+
+All experiments use the Balanced Arabic Readability Evaluation Corpus
+\cite{elmadani2025barec}, obtained from the public repository \texttt{\datasetName}. The corpus
+contains 69{,}441 manually annotated Arabic sentences over 19 ordered readability levels, named
+after the Abjad ordering of the Arabic letters (1-\textit{alif} to 19-\textit{qaf}) and ranging
+from kindergarten to postgraduate reading difficulty. Sentences carry the fine-grained label in
+the column \texttt{Readability\_Level\_19} and the three collapsed labels
+\texttt{Readability\_Level\_7}, \texttt{Readability\_Level\_5} and
+\texttt{Readability\_Level\_3}.
+
+The corpus is split at the document level, so that no document contributes sentences to more
+than one split. Table~\ref{tab:meth-splits} reports the sizes.
+
+\begin{table}[H]
+\centering
+\caption{BAREC splits as used in this thesis. The sizes are asserted against Table~3 of
+Elmadani et al.~\cite{elmadani2025barec} before any training starts.}
+\label{tab:meth-splits}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Split} & \textbf{Documents} & \textbf{Sentences} & \textbf{Words} \\
+\midrule
+Train       & 1{,}518 & 54{,}845 & 832{,}743 \\
+Development &   194 &  7{,}310 & 101{,}364 \\
+Test        &   210 &  7{,}286 & 105{,}264 \\
+\midrule
+All         & 1{,}922 & 69{,}441 & 1{,}039{,}371 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Labels are shifted to $y \in \{0,\dots,18\}$ during training and shifted back only when results
+are reported, which follows the reference script and keeps the index arithmetic in the losses
+simple.
+
+\subsection{Checks Run on the Loaded Data}
+
+Four assertions run before any model is built, and the program stops rather than continue if
+one of them fails.
+
+\begin{enumerate}
+\item The three split sizes equal the published values in Table~\ref{tab:meth-splits}.
+\item The D3Tok column exists, and the clitic marker \texttt{+} occurs in more than half of a
+2{,}000-sentence sample of the training split. A silent preprocessing failure would leave plain
+text in that column, and this check catches it.
+\item The 7-, 5- and 3-level collapse tables of the reference script are applied to the
+19-level gold labels and compared, sentence by sentence, with the corpus's own collapsed
+columns on all three splits. They agree everywhere, so the collapsed accuracies reported in
+Chapter~\ref{chap:results} cannot be the product of a misremembered mapping.
+\item The development and test splits each contain at least one sentence of every one of the 19
+levels, which the quadratic weighted kappa computation requires to be meaningful.
+\end{enumerate}
+
+One correction to the published script is needed: the released dataset names its middle split
+\texttt{dev}, while the script reads a split named \texttt{validation}. The implementation
+accepts either name and then verifies the size, so the correct split is used.
+
+\section{Input Representation}
+\label{sec:meth-input}
+
+\subsection{D3Tok}
+
+The corpus ships several input variants of every sentence. This thesis uses D3Tok, the
+morphologically segmented variant produced by the corpus authors with CAMeL Tools
+\cite{obeid2020camel}: each word is separated into its base and its clitics, and every clitic
+boundary is marked with a \texttt{+} character. D3Tok is read as a column of the corpus, so the
+segmentation is the corpus authors' own and is identical for every method, which removes the
+preprocessing tool as a source of variation between methods.
+
+Arabic attaches function words to their host word in writing. A single written token may fuse a
+conjunction, the definite article and a noun; in Buckwalter transliteration such a token
+appears as \texttt{wAlfDp} and D3Tok renders it \texttt{w+ Al+ fDp}, exposing the conjunction
+\textit{wa+}, the article \textit{al+} and the noun. The BAREC annotation guidelines list the
+presence and the type of clitics among the markers of readability level
+\cite{habash2025guidelines}, so exposing them to the encoder is linguistically motivated and
+not only a tokenisation convenience.
+
+Two empirical reasons support the choice. First, AraBERTv2 was pretrained on morphologically
+segmented Arabic \cite{antoun2020arabert}, so segmented input matches the distribution seen
+during pretraining. Second, in the benchmark itself, the pairing of AraBERTv2 with D3Tok input
+raises development QWK from 76.3 to 80.0 relative to plain word input, and that pairing is the
+configuration the benchmark carries into its loss function comparison
+\cite{elmadani2025barec}. Using it here is what makes the reproduction check in
+Chapter~\ref{chap:results} meaningful.
+
+\subsection{Tokenisation}
+
+Sentences are tokenised with the AraBERTv2 tokenizer, truncated at 512 subword tokens, and
+padded dynamically to the longest sequence in each batch. Truncation length and dynamic padding
+both follow the reference script. Dynamic padding changes only how much padding the encoder
+processes, never the content of a sentence.
+
+\section{Encoder and Prediction Heads}
+\label{sec:meth-heads}
+
+\subsection{Encoder}
+
+The encoder is AraBERTv2 (\texttt{aubmindlab/bert-base-arabertv2})
+\cite{antoun2020arabert}: twelve transformer layers, twelve attention heads and a hidden size
+of 768, pretrained on approximately 8.6 billion words of Arabic. The same checkpoint, at the
+same repository revision, is used by every method in the fine-tuning track, and all of its
+parameters are updated during training.
+
+The sentence representation is the encoder's pooled output, that is, the first-token
+representation passed through the pretrained pooling layer with its hyperbolic tangent
+activation. A dropout layer with the rate stored in the model configuration, $0.1$, is applied
+to it. This is the representation that the standard sequence classification wrapper uses, so
+the classification and regression heads take it unchanged; the CORAL head is built on the same
+representation so that the three heads differ in their output structure only.
+
+\subsection{Three Heads}
+
+Let $\mathbf{h} \in \mathbb{R}^{768}$ be the pooled, dropped-out representation and let $K=19$.
+
+\paragraph{Classification head.} A linear layer produces one score per level,
+\begin{equation}
+\mathbf{z} = W\mathbf{h} + \mathbf{b}, \qquad W \in \mathbb{R}^{19\times768},\quad
+\mathbf{b}\in\mathbb{R}^{19},
+\end{equation}
+which a softmax turns into a distribution $\mathbf{p}$ over the 19 levels. Prediction is
+$\hat{y} = \arg\max_k p_k$. Cross-entropy, OLL, EMD and the four soft-label losses all use this
+head; they differ only in the loss applied to $\mathbf{p}$.
+
+\paragraph{Regression head.} A linear layer produces one unbounded scalar,
+\begin{equation}
+\hat{s} = \mathbf{w}^{\top}\mathbf{h} + b, \qquad \mathbf{w}\in\mathbb{R}^{768},\quad
+b\in\mathbb{R}.
+\end{equation}
+Prediction rounds to the nearest level and clips to the valid range,
+$\hat{y} = \mathrm{clip}(\mathrm{rint}(\hat{s}), 0, 18)$, where $\mathrm{rint}$ rounds halves
+to the nearest even integer. The mean squared error method and the Soft-QWK method use this
+head.
+
+\paragraph{CORAL head.} The CORAL head \cite{cao2020coral} replaces the 19-way decision by
+$K-1=18$ ordered binary questions, ``is the level greater than $k$?''. All 18 questions share a
+single projection vector and differ only in a free bias, called a cut-point:
+\begin{equation}
+z_k = \mathbf{w}^{\top}\mathbf{h} + b_k, \qquad k = 0,\dots,17 ,
+\label{eq:coral-logits}
+\end{equation}
+implemented as a bias-free linear layer of output size one, giving a single readability score
+$s = \mathbf{w}^{\top}\mathbf{h}$, plus a learnable vector of 18 cut-points added to it. After
+a sigmoid, $\sigma(z_k)$ estimates $P(y>k)$. Prediction counts the questions answered yes,
+\begin{equation}
+\hat{y} = \sum_{k=0}^{17} \mathbb{1}\left[\sigma(z_k) > 0.5\right].
+\label{eq:coral-decode}
+\end{equation}
+
+Because the projection is shared, the 18 estimated probabilities are ordered whenever the
+cut-points are ordered, so the model cannot claim that a sentence exceeds level 9 while denying
+that it exceeds level 5. Cao et al.\ prove that the minimiser of the CORAL loss has ordered
+cut-points \cite{cao2020coral}; that is a statement about the optimum, not a guarantee about
+every intermediate model, so whether the cut-points are in fact ordered after each epoch is
+logged during training and reported in Chapter~\ref{chap:results}.
+
+The three heads add 14{,}611, 769 and 786 parameters respectively on top of the encoder, so the
+capacity added by the head is negligible against the roughly 135 million parameters of AraBERTv2 and
+cannot explain any difference between methods.
+
+Table~\ref{tab:meth-heads} summarises the heads and their decoding rules.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Prediction heads, their outputs and their decoding rules.}
+\label{tab:meth-heads}
+\begin{tabular}{p{2.6cm} p{1.9cm} p{4.3cm} p{4.0cm}}
+\toprule
+\textbf{Head} & \textbf{Output} & \textbf{Used by} & \textbf{Decoding} \\
+\midrule
+Classification & $\mathbb{R}^{19}$ & CE, OLL, EMD, SOFT ($\beta=2,3,4,5$) &
+$\arg\max_k p_k$ \\
+Regression & $\mathbb{R}$ & Regression (MSE), MSE $\rightarrow$ Soft-QWK &
+round to nearest level, clip to $[0,18]$ \\
+CORAL & $\mathbb{R}^{18}$ & CORAL and its ablation &
+count of $\sigma(z_k) > 0.5$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Loss Functions}
+\label{sec:meth-losses}
+
+Throughout this section $y\in\{0,\dots,18\}$ is the gold level of one sentence, $\mathbf{p}$ is
+the predicted distribution from the classification head, $\hat{s}$ is the output of the
+regression head, and $N$ is the number of sentences in the batch. Every loss is a mean over the
+batch, which is the reduction used by the reference script.
+
+\subsection{Cross-Entropy}
+
+\begin{equation}
+\mathcal{L}_{\text{CE}} = -\log p_y .
+\end{equation}
+
+Cross-entropy is the ordinal-blind baseline. Its value depends only on the probability given to
+the correct level, so moving the remaining mass from an adjacent level to the most distant
+level does not change it. Every other loss in this comparison exists to remove that property.
+
+\subsection{Regression with Mean Squared Error}
+
+\begin{equation}
+\mathcal{L}_{\text{MSE}} = (\hat{s}-y)^2 .
+\end{equation}
+
+The penalty grows with the square of the error, so a prediction ten levels away costs one
+hundred times a prediction one level away. Ordinal information enters through the arithmetic of
+the label rather than through an explicit distance matrix. This is the method that obtained the
+best QWK in the benchmark \cite{elmadani2025barec}.
+
+\subsection{Ordinal Log Loss}
+
+Ordinal log loss \cite{castagnos2022ordinal} keeps the classification head and weights the
+probability given to each wrong level by its distance from the gold level:
+\begin{equation}
+\mathcal{L}_{\text{OLL}} = -\sum_{k=0}^{18} |y-k|^{\alpha}\,\log\left(1-p_k\right),
+\qquad \alpha = 1.5 .
+\end{equation}
+The gold level contributes nothing, since its weight $|y-y|^{\alpha}$ is zero; the loss is
+driven entirely by where the incorrect mass sits. The exponent $\alpha$ controls how sharply
+distant mass is punished relative to adjacent mass, and $\alpha=1.5$ is the value that performed
+best among $\{0.5, 1, 1.5, 2\}$ in the benchmark, which is why it is the value used here.
+
+\subsection{Earth Mover's Distance}
+
+The EMD loss \cite{hou2017emd} compares cumulative distributions rather than probabilities.
+With $P_k=\sum_{j\leq k}p_j$ and the gold cumulative distribution
+$T_k = \mathbb{1}[y \leq k]$,
+\begin{equation}
+\mathcal{L}_{\text{EMD}} = \sum_{k=0}^{18}\left(P_k - T_k\right)^2 .
+\end{equation}
+The sum is not divided by the number of levels, again following the reference implementation.
+Probability mass that sits near the gold level produces a short mismatch between the two
+cumulative curves, and mass that sits far from it produces a long one.
+
+\subsection{Soft Labels}
+
+The soft-label loss \cite{bertinetto2020soft} replaces the one-hot target by a distribution
+that decays exponentially with distance from the gold level, and then applies cross-entropy
+against that target:
+\begin{equation}
+q_i = \frac{e^{-\beta|y-i|}}{\sum_{n=0}^{18} e^{-\beta |n-i|}}, \qquad
+\mathcal{L}_{\text{SOFT}} = -\sum_{i=0}^{18} q_i \log p_i .
+\end{equation}
+The normalisation runs over the levels $n$ for a fixed $i$, as in the reference
+implementation, so the target is not exactly a probability vector over $i$; it is a
+distance-weighted target whose scale depends on $\beta$. The smoothing parameter is evaluated
+at $\beta \in \{2,3,4,5\}$, the grid used in the benchmark. A large $\beta$ concentrates the
+target on the gold level and approaches cross-entropy; a small $\beta$ spreads credit onto
+neighbouring levels.
+
+\subsection{CORAL}
+
+For the CORAL head, the target of question $k$ is $t_k = \mathbb{1}[y>k]$ and the loss is the
+binary cross-entropy of the 18 questions, summed over questions and averaged over the batch:
+\begin{equation}
+\mathcal{L}_{\text{CORAL}} = \frac{1}{N}\sum_{n=1}^{N}\sum_{k=0}^{17}
+\Big[-t_k^{(n)}\log\sigma\big(z_k^{(n)}\big)
+-\big(1-t_k^{(n)}\big)\log\big(1-\sigma\big(z_k^{(n)}\big)\big)\Big].
+\label{eq:coral-loss}
+\end{equation}
+Summing rather than averaging over the 18 questions is what Cao et al.\ specify
+\cite{cao2020coral}. The choice matters: averaging would divide every gradient reaching the
+shared projection and the cut-points by 18, which at a fixed learning rate would shrink the
+distance those parameters can travel by the same factor. Averaging over the batch is the
+reduction used by all the other losses here, so the two conventions are combined as written in
+Equation~\ref{eq:coral-loss}.
+
+\subsection{Soft-QWK, and Why It Needs Two Phases}
+
+The metric used to judge every method, quadratic weighted kappa, cannot be optimised directly,
+because it is computed from counts of discrete predictions and counting has no useful gradient.
+The STBW system \cite{trigui2025stbw} replaces each discrete step by a smooth one, following
+earlier work on differentiable kappa objectives \cite{delatorre2018wkl} and on turning a scalar
+prediction into a soft distribution \cite{diaz2019softlabels}. This thesis implements the same
+objective.
+
+First, the scalar prediction is clamped into the valid range and spread over the 19 levels with
+a Gaussian window of width $\sigma=1$, normalised to sum to one:
+\begin{equation}
+\hat{y} = \mathrm{clip}(\hat{s},0,18), \qquad
+P_i \propto \exp\left(-\frac{(i-\hat{y})^2}{2\sigma^2}\right) .
+\end{equation}
+The window is centred on the continuous prediction rather than on the rounded one, because a
+rounded centre would again have zero gradient. Second, with $\mathbf{T}$ the matrix of one-hot
+gold labels and $\mathbf{P}$ the matrix of soft predictions for the batch, a soft agreement
+matrix and a chance agreement matrix are accumulated,
+\begin{equation}
+O = \mathbf{T}^{\top}\mathbf{P}, \qquad
+E = \frac{\mathbf{o}_{\text{gold}}\,\mathbf{o}_{\text{pred}}^{\top}}{N},
+\end{equation}
+where $\mathbf{o}_{\text{gold}}$ and $\mathbf{o}_{\text{pred}}$ are the row and column totals
+of $O$. Third, with the quadratic penalty $W_{ij}=(i-j)^2$, the differentiable kappa and the
+loss are
+\begin{equation}
+\kappa_{\text{soft}} = 1 - \frac{\langle W,O\rangle}{\langle W,E\rangle + \varepsilon},
+\qquad
+\mathcal{L}_{\text{Soft-QWK}} = 1-\kappa_{\text{soft}},
+\qquad \varepsilon = 10^{-9}.
+\end{equation}
+
+This objective has a property no other loss in the comparison has: it is a statistic of the
+whole batch, not a sum of per-sentence terms. A model can therefore lower it by placing every
+prediction near the mean level of the batch, which keeps the soft agreement matrix plausible
+without reading any sentence. The STBW authors report exactly this failure and avoid it by
+training in two phases: mean squared error first, then Soft-QWK from that checkpoint
+\cite{trigui2025stbw}. The same two-phase schedule is used here. Phase one trains with mean
+squared error for three epochs and keeps the checkpoint with the lowest development loss; phase
+two continues from that checkpoint with the Soft-QWK objective for three epochs, with a fresh
+optimiser and a fresh learning rate schedule. The total budget stays at six epochs, so the
+method is not given more training than the others, but its schedule is different and its
+results are therefore reported as a separate group throughout Chapter~\ref{chap:results}.
+
+Three values of this method are not specified by the STBW paper and are choices made here: the
+Gaussian width $\sigma=1$, the position of the phase boundary after epoch three, and the
+numerical guard $\varepsilon$. The phase boundary follows the STBW observation that their
+warm-up checkpoint was the third epoch.
+
+\subsection{Numerical Safeguards}
+
+Two losses take a logarithm of a quantity that a softmax can drive to a boundary. In OLL, a
+predicted probability of exactly one at some level would make $\log(1-p_k)$ infinite, and at
+the gold level that infinity would be multiplied by a zero weight, producing an undefined
+value; the probability is therefore clamped just below one before the logarithm. In the
+soft-label loss the probability is clamped just above zero before $\log p_i$. Both clamps use
+the smallest representable margin of the working precision, so they agree with the literal
+formula wherever the literal formula is finite. All losses upcast the model output to
+single precision before any softmax, logarithm or sigmoid, so that mixed-precision training
+does not change the arithmetic of the loss itself.
+
+\subsection{Verification of the Loss Implementations}
+
+Each loss is checked against an independent implementation before any training run, on the same
+random logits in double precision. Cross-entropy, OLL, EMD and the four soft-label losses are
+compared against literal element-by-element loops written in the form used by the reference
+script; CORAL is compared against a closed-form numerically stable expansion of the binary
+cross-entropy; and Soft-QWK, evaluated with a very narrow Gaussian so that its soft
+distribution approaches a one-hot vector, is compared against $1-\kappa$ computed by
+\texttt{scikit-learn} on hard predictions. Every check agrees to better than $10^{-9}$, and the
+program refuses to train if any of them fails. The metric implementations are verified in the
+same way, as described in Section~\ref{sec:meth-metrics}.
+
+\section{Cut-Point Initialisation for CORAL}
+\label{sec:meth-coral-init}
+
+The 18 cut-points of the CORAL head are ordinary parameters, and the natural default is to
+start them at zero. Under the BAREC protocol that default is a problem, and the reason is
+arithmetic rather than statistical.
+
+At convergence, cut-point $b_k$ has to sit near the value at which the shared score $s$
+separates level $k$ from level $k+1$. Since the 19 levels are very unevenly populated, those
+values are spread over a wide interval: the fitted spread between the highest and the lowest
+cut-point in this work is \cutSpreadCoral\ (Chapter~\ref{chap:results}). Now consider how far a
+parameter can travel under the protocol. Training runs for six epochs of \stepsPerEpoch\
+optimiser steps, that is \gpuTotalSteps\ steps, at a learning rate of $5\times10^{-5}$ decayed
+linearly to zero. The sum of the learning rate over all steps is \lrSumEncoder. With an
+optimiser whose per-step update is bounded in magnitude by the learning rate, as AdamW's
+normalised update effectively is \cite{loshchilov2019adamw}, no single parameter can move much
+further than \lrSumEncoder\ in total. A cut-point that starts at zero cannot reach a value near
+$-6$ or $+5$, no matter how clear the training signal is.
+
+The initialisation used here removes the problem instead of spending the budget on it. The
+cumulative label frequencies of the \emph{training} split are converted into the cut-point that
+reproduces them before any sentence is seen:
+\begin{equation}
+b_k = \log \frac{\hat{P}(y>k)}{1-\hat{P}(y>k)}, \qquad
+\hat{P}(y>k) = \frac{1}{N_{\text{train}}}\sum_{n=1}^{N_{\text{train}}}\mathbb{1}\left[y^{(n)}>k\right],
+\label{eq:coral-init}
+\end{equation}
+with the frequency clipped to $[10^{-4}, 1-10^{-4}]$ so that the logit stays finite. Since
+$\hat{P}(y>k)$ is non-increasing in $k$ by construction, the initial cut-points are ordered,
+which the implementation also asserts. At initialisation the head therefore predicts the
+training label distribution with a score of zero, and the training budget is spent on learning
+the projection that separates sentences rather than on transporting biases across the real
+line. Only training labels are used, so the development and test splits are untouched by the
+initialisation.
+
+This is a head initialisation, not a change of the pipeline, and it is the one element of the
+method that is neither in the BAREC script nor in the two shared-task papers. Two experiments
+in Chapter~\ref{chap:results} test the argument rather than assume it: the distance the
+cut-points actually travel during training is measured, and an ablation raises the head
+learning rate to $10^{-3}$, which multiplies the budget by twenty while leaving the encoder at
+the protocol value.
+
+\section{Training Protocol}
+\label{sec:meth-protocol}
+
+\subsection{Hyper-parameters}
+
+Table~\ref{tab:meth-hparams} lists the protocol. Every value is the one used by the BAREC
+script, including those that the script leaves at the library default: no warm-up, no weight
+decay, a linear decay schedule and gradient clipping at a norm of one.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Training protocol, identical for every method in the fine-tuning track.}
+\label{tab:meth-hparams}
+\begin{tabular}{p{6.2cm} p{7.2cm}}
+\toprule
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+Encoder & \texttt{aubmindlab/bert-base-arabertv2} \\
+Input & D3Tok column of the corpus \\
+Maximum sequence length & 512 subword tokens, dynamic padding \\
+Optimiser & AdamW, $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$ \\
+Learning rate & $5\times10^{-5}$ \\
+Schedule & linear decay to zero, no warm-up \\
+Weight decay & 0 \\
+Gradient clipping & maximum norm 1.0 \\
+Epochs & 6 \\
+Effective training batch & 64 sentences (\microBatch\ per step, \gradAccum\ accumulation steps) \\
+Evaluation batch & \evalBatch \\
+Optimiser steps per epoch & \stepsPerEpoch \\
+Mixed precision & fp16 autocast, single-precision master weights \\
+Random seed & 42 \\
+Checkpoint selection & lowest development loss over the six epochs, no early stopping \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Checkpoint Selection}
+
+The benchmark selects the epoch with the lowest development loss, keeps no other criterion and
+uses no early stopping; that rule is used here for every method, including the ones whose
+source papers use a different rule. This matters for the comparison, because the development
+loss of each method is measured in that method's own loss, so the rule is not a metric shared
+between methods but a per-method criterion. The two shared-task systems both select on
+development QWK instead \cite{nazzal2025zai,trigui2025stbw}, which raises the question of how
+much of their advantage comes from the selection rule. Section~\ref{sec:meth-methods} therefore
+declares a selection ablation that evaluates the highest-QWK epoch of every method as well.
+
+Reporting the numbers of the selected epoch requires care. The selected model is saved
+explicitly at the moment it is identified, the saved weights are reloaded for evaluation, and
+the reloaded development metrics are compared with what was logged during training at that same
+epoch. The comparison is recorded in every result file and is reported in
+Chapter~\ref{chap:results}; it is the check that the reported numbers belong to the selected
+epoch and not to some later one.
+
+\subsection{Differences from the Published Script}
+
+Three implementation differences are declared here because they are visible in the arithmetic,
+and one because it is a correction. None of them changes a hyper-parameter, and all of them are
+identical across methods.
+
+\begin{enumerate}
+\item \textbf{Batch composition.} A batch of 64 sentences at length 512 does not fit in the 16
+gigabytes of the available accelerator, so the batch is formed as \microBatch\ sentences per
+forward pass with \gradAccum\ accumulation steps. The 54{,}845 training sentences then give
+\stepsPerEpoch\ optimiser steps per epoch, the same number as a true batch of 64. Each
+optimiser step therefore averages the gradient of 64 sentences, with one exception: the last
+step of each epoch covers the remaining 61 sentences as four micro-batches of 16, 16, 16 and
+13 sentences, so its per-sentence weighting differs slightly from the weighting a single batch
+of 61 sentences would produce.
+
+\item \textbf{Mixed precision.} Training uses fp16 autocast with single-precision master
+weights, which the reference script does not; it was adopted to fit the available time budget.
+Every loss is computed in single precision, as described above. Mixed precision can cause the
+optimiser to skip a step whose gradients overflow, and the number of such skipped steps was not
+recorded, so it cannot be ruled out that a small number of updates were dropped.
+
+\item \textbf{Batch composition for Soft-QWK.} Gradient accumulation is equivalent to a larger
+batch only for losses that are sums over sentences. Soft-QWK is a statistic of the whole batch,
+so accumulation would compute it on 16 sentences at a time instead of 64. Its second phase is
+therefore trained with a true batch of 64 sentences and gradient checkpointing, which trades
+computation for memory without changing the arithmetic.
+
+\item \textbf{Methods the script does not implement.} The published script contains no
+regression trainer, and it routes the name CORAL to an ordinary classification trainer. The
+regression method here follows the description in the benchmark paper, and CORAL follows Cao et
+al.\ \cite{cao2020coral}. The weighted kappa loss present in the script is not run, on the
+supervisor's instruction, since it appears in no table of the benchmark paper and is neither
+CORAL nor Soft-QWK.
+\end{enumerate}
+
+\section{Methods Compared and Ablations}
+\label{sec:meth-methods}
+
+Table~\ref{tab:meth-methods} lists the eleven training runs. Nine form the comparable group, in
+which the protocol is identical and only the head and the loss change. Soft-QWK is reported as
+its own group because its schedule differs, as explained above. The two ablations answer
+specific questions and are never mixed into the comparable group.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{The eleven runs of the fine-tuning track.}
+\label{tab:meth-methods}
+\begin{tabular}{p{3.4cm} p{1.7cm} p{2.0cm} p{5.6cm}}
+\toprule
+\textbf{Run} & \textbf{Head} & \textbf{Group} & \textbf{Role} \\
+\midrule
+CE & classification & comparable & ordinal-blind baseline \\
+Regression (MSE) & regression & comparable & best benchmark loss \\
+OLL, $\alpha=1.5$ & classification & comparable & distance-weighted loss \\
+EMD & classification & comparable & cumulative distribution loss \\
+SOFT, $\beta=2,3,4,5$ & classification & comparable & distance-weighted targets \\
+CORAL & CORAL & comparable & ordinal head, the ZAI approach \\
+MSE $\rightarrow$ Soft-QWK & regression & two-phase & metric-aligned, the STBW approach \\
+CORAL, head lr $10^{-3}$ & CORAL & ablation & tests the cut-point travel argument \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two further ablations need no additional training, because they re-evaluate saved models.
+
+\paragraph{Decision threshold for CORAL.} The ZAI system tunes a single decision threshold on
+the development set instead of using $0.5$ \cite{nazzal2025zai}. The saved CORAL model is
+therefore decoded again with every threshold on the grid $0.05, 0.06, \dots, 0.95$, the value
+with the highest development QWK is kept, and the test numbers under that threshold are
+reported. Its development numbers are optimistic by construction, since the threshold was
+chosen on that split.
+
+\paragraph{Selection rule.} As announced above, the highest development QWK epoch of every
+method is also saved and evaluated. Here too the development numbers are optimistic by
+construction and only the test column can be read as a result.
+
+\section{Evaluation Metrics}
+\label{sec:meth-metrics}
+
+Six metrics come from the benchmark, and three more are added.
+
+\begin{itemize}
+\item \textbf{QWK}, quadratic weighted kappa \cite{cohen1968kappa}, computed with
+\texttt{scikit-learn} with quadratic weights. It is the primary metric of the benchmark and of
+the shared task, and it is the metric on which all comparisons in this thesis are based. It
+rewards agreement while penalising an error by the square of its size, which is exactly the
+ordinal property the losses try to exploit.
+\item \textbf{Acc19}, the proportion of exactly correct levels.
+\item \textbf{$\pm$1 Acc19}, the proportion of predictions within one level of the gold level.
+\item \textbf{Dist}, the mean absolute distance between predicted and gold level, in levels.
+\item \textbf{Acc7, Acc5, Acc3}, exact accuracy after collapsing predictions and gold labels to
+the coarser 7-, 5- and 3-level schemes with the corpus's own mappings, verified as described in
+Section~\ref{sec:meth-data}.
+\item \textbf{far$\geq$3} and \textbf{far$\geq$5}, the proportion of predictions that are at
+least three and at least five levels away from the gold level. These two are \emph{not} BAREC
+metrics; they are introduced in this thesis to answer the part of the research brief that asks
+for the error distance, and specifically to separate a near miss from a far miss. $\pm$1
+accuracy counts the near misses and these two count the tails. They are labelled as this
+thesis's own wherever they appear.
+\item \textbf{Macro-F1} over the 19 levels, reported as a diagnostic of whether a method uses
+the whole label range or concentrates on the frequent levels.
+\end{itemize}
+
+The metric code is tested before use: a perfect predictor must give QWK, Acc19 and all
+collapsed accuracies of one and a distance of zero; a predictor shifted by exactly one level
+must give an Acc19 of zero, a $\pm$1 accuracy of one and a distance of exactly one; and
+distance, $\pm$1 accuracy and far$\geq$3 are recomputed directly from the absolute differences
+and compared with the library results. The three collapse tables are also checked to be onto
+the 7, 5 and 3 target levels.
+
+\section{Frozen-Backbone Track}
+\label{sec:meth-frozen}
+
+The research brief asks for CPU-friendly training settings. Fine-tuning 135 million parameters
+does not meet that description on any processor, so the requirement is met by a second track in
+which the encoder is not trained at all.
+
+The encoder is run once over the corpus in inference mode and two sentence representations are
+cached for every sentence: the pooled output, as in the fine-tuning track, and the mean of the
+final-layer token representations over the non-padding tokens. Only a linear head is then
+trained on the cached features, which takes a few minutes per run on a laptop processor; the
+\cpuSeeds\ runs of every method together take \cpuTotalMinutes\ minutes.
+
+The head hyper-parameters cannot be the protocol's. A linear head on frozen features, trained
+for six epochs at $5\times10^{-5}$, does not converge: the travel budget argument of
+Section~\ref{sec:meth-coral-init} applies to every head parameter, not only to CORAL's
+cut-points. The head is therefore trained for \cpuEpochs\ epochs at a learning rate of
+$\cpuHeadLr$, which gives \cpuTotalSteps\ steps and a budget of \cpuLrSum, with the other
+settings unchanged: AdamW, no weight decay, linear decay, gradient clipping at one, dropout
+$0.1$ and a batch of 64. These values are ours, they are listed here because they are not the
+benchmark's, and they are identical for every method in the track, which is what the comparison
+requires. Every method is run with five seeds, 42 to 46, and reported as a mean with a standard
+deviation. The checkpoint selection rule, the losses, the decoders, the collapse tables and the
+metrics are the same code as in the fine-tuning track.
+
+This track also carries one ablation that the fine-tuning track cannot afford: CORAL with
+zero-initialised cut-points. Here the head budget is \cpuLrSum, far more than the spread the
+cut-points need, so the initialisation of Section~\ref{sec:meth-coral-init} should make little
+difference; under the fine-tuning protocol the budget is \lrSumEncoder\ and it should make a
+large one. The two tracks together therefore test the argument from both sides.
+
+Because the encoder never adapts, the absolute numbers of this track are much lower than the
+fine-tuning numbers, which is the expected outcome and not a defect. They are never compared
+with the published tables.
+
+\section{Implementation and Reproducibility}
+\label{sec:meth-impl}
+
+The fine-tuning track is a single self-contained script, run in three parts on three accounts
+of a free notebook service so that the eleven runs could proceed in parallel; the part is only
+a scheduling label and no hyper-parameter depends on it. Each run took between \minAll\ and \maxAll\ minutes on one NVIDIA Tesla T4, and the eleven runs together took \totalMinutes\
+minutes of accelerator time, that is about \totalHours\ hours.
+
+Every result file records the software and hardware it was produced on: Python
+\pythonVersion, PyTorch \torchVersion, Transformers \tfVersion, Datasets \datasetsVersion, the
+accelerator name, the number of visible accelerators, the realised training batch, the observed
+number of optimiser steps per epoch, whether mixed precision was active, the corpus repository
+revision (\datasetSha) and the encoder repository revision (\modelSha). Pinning the two
+repository revisions matters because both are living repositories that can change after
+publication.
+
+Three guards run in every training run, and each aborts the run rather than produce a number
+that cannot be trusted. The first refuses to start if more than one accelerator is visible or
+if the realised training batch is not 64; an earlier version of these experiments silently
+trained at a batch of 128 because a second accelerator was present, and this guard exists to
+make that failure impossible. The second records the number of optimiser steps actually
+performed in each epoch and checks it against the number implied by the corpus size, the
+micro-batch and the accumulation. The third is the reloaded-checkpoint comparison of
+Section~\ref{sec:meth-protocol}. The outcome of all three is reported for every method in
+Chapter~\ref{chap:results}.
+
+\section{Summary}
+
+This chapter fixed everything except the head and the loss: the corpus and its official splits,
+the D3Tok input read from the corpus itself, the AraBERTv2 encoder, and a training protocol
+taken from the benchmark script down to the library defaults. Nine runs form the comparable
+group, one two-phase run implements the metric-aligned objective, and two ablations test the
+cut-point argument and the decision threshold, with a third ablation testing the checkpoint
+selection rule. Every loss and every metric was verified against an independent implementation
+before training, the three differences from the published script were declared, and the
+cut-point initialisation of Equation~\ref{eq:coral-init} was introduced with an explicit
+prediction about what the experiments should show. A second, frozen-backbone track provides
+the CPU-friendly setting of the research brief and the variance estimates that a single-seed
+protocol cannot give.
+
+\textit{The next chapter reports what these eleven runs produced, checks them against the
+published benchmark, and tests the predictions made here.}
