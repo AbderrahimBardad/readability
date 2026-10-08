@@ -25,13 +25,14 @@
 #           Head: v3's 19-way head. Control: SOFT2.
 #   CLM     Cumulative link model, McCullagh, JRSS-B 42 (1980), trained by
 #           maximum likelihood; deep layer of Vargas, Gutierrez & Hervas-
-#           Martinez, Neurocomputing 401 (2020), transcribed from their group's
+#           Martinez, Neurocomputing 401 (2020), pp. 48-58, transcribed from their group's
 #           library dlordinal (output_layers/clm.py, logit link). One projection
 #           and 18 ordered thresholds, like CORAL, but one likelihood instead of
 #           18 separate binary losses. Control: CORAL.
 #
 #  PART G ARMS -- regression head, batch losses (one Kaggle account, ~1.8 h)
-#   OE      Ordinal entropy. Zhang, Yang, Hou, Dai & Ye (Cheng), ICLR 2023.
+#   OE      Ordinal entropy. Zhang, Yang, Mi, Zheng & Yao, "Improving Deep
+#           Regression with Ordinal Entropy", ICLR 2023 (arXiv 2301.08915).
 #           MSE + (tightness - diversity) of the pooled sentence vectors,
 #           transcribed from the authors' AgeEstimation/OrdinalEntropy.py
 #           (github.com/needylove/OrdinalEntropy). Control: MSE.
@@ -39,8 +40,9 @@
 #           ICML 2007. The listwise sibling of Part E's pairwise RANK and PLR.
 #           Control: MSE.
 #   CCC     1 - Lin's concordance correlation coefficient, Lin, Biometrics 45
-#           (1989); trained on directly in speech emotion recognition
-#           (Trigeorgis et al., ICASSP 2016). On integer predictions the batch
+#           (1989), pp. 255-268; maximised directly as a training objective by
+#           Tzirakis, Trigeorgis, Nicolaou, Schuller & Zafeiriou, IEEE J. Sel.
+#           Topics Signal Process. 11(8), 2017. On integer predictions the batch
 #           CCC IS the quadratic weighted kappa (self-tested below), so this is
 #           a QWK objective with no extra hyper-parameter. Controls: MSE,
 #           SOFTQWK.

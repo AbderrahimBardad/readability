@@ -29,10 +29,10 @@ writes `results_backup_partF.zip` or `results_backup_partG.zip`.
 |---|---|---|---|---|
 | MV | Pan, Han, Shan & Chen, *Mean-Variance Loss for Deep Age Estimation from a Face*, CVPR 2018 | github.com/Herosan163/AgeEstimation | CE + 0.2 × mean loss + 0.05 × variance loss; predicts the expected level | CE |
 | DLDL2 | Gao, Zhou, Wu & Geng, *Age Estimation Using Expectation of Label Distribution Learning*, IJCAI 2018 | authors' code github.com/gaobb/DLDL-v2 (`ldklexpl1`, `-lambda 1`) | KL to a Gaussian label distribution (σ = 2) + 1.0 × L1 of the expected level; predicts the expected level | SOFT2, CE |
-| CLM | McCullagh, *Regression Models for Ordinal Data*, JRSS-B 1980; Vargas, Gutiérrez & Hervás-Martínez, *Cumulative link models for deep ordinal classification*, Neurocomputing 2020 | dlordinal `output_layers/clm.py` (same research group) | one score and 18 ordered thresholds, trained by maximum likelihood | CORAL |
-| OE | Zhang et al., *Improving Deep Regression with Ordinal Entropy*, ICLR 2023 | authors' code github.com/needylove/OrdinalEntropy (`AgeEstimation/OrdinalEntropy.py`) | MSE + ordinal entropy of the 768-d sentence vectors | MSE |
+| CLM | McCullagh, *Regression Models for Ordinal Data*, JRSS-B 1980; Vargas, Gutiérrez & Hervás-Martínez, *Cumulative link models for deep ordinal classification*, Neurocomputing 401, 2020, pp. 48–58 | dlordinal `output_layers/clm.py` (same research group) | one score and 18 ordered thresholds, trained by maximum likelihood | CORAL |
+| OE | Zhang, Yang, Mi, Zheng & Yao, *Improving Deep Regression with Ordinal Entropy*, ICLR 2023 | authors' code github.com/needylove/OrdinalEntropy (`AgeEstimation/OrdinalEntropy.py`) | MSE + ordinal entropy of the 768-d sentence vectors | MSE |
 | LISTNET | Cao, Qin, Liu, Tsai & Li, *Learning to Rank: From Pairwise Approach to Listwise Approach*, ICML 2007 | loop in the self-test | MSE + listwise ranking loss (the listwise version of RANK and PLR) | MSE |
-| CCC | Lin, *A Concordance Correlation Coefficient to Evaluate Reproducibility*, Biometrics 1989; used as a training loss by Trigeorgis et al., ICASSP 2016 | loop in the self-test, and sklearn's QWK | 1 − concordance correlation of the batch | MSE, SOFTQWK |
+| CCC | Lin, *A Concordance Correlation Coefficient to Evaluate Reproducibility*, Biometrics 45, 1989, pp. 255–268; maximised as a training objective by Tzirakis et al., *End-to-End Multimodal Emotion Recognition Using Deep Neural Networks*, IEEE J. Sel. Topics Signal Process. 11(8), 2017 | loop in the self-test, and sklearn's QWK | 1 − concordance correlation of the batch | MSE, SOFTQWK |
 
 **Why CCC is interesting.** On whole-number predictions, the concordance correlation of a batch
 is exactly the quadratic weighted kappa. The self-test checks this against sklearn and they
@@ -64,3 +64,16 @@ These are all printed under DECLARED DEFAULTS in the run log.
 - **CCC ε = 1e-9.** It only prevents a 0/0 batch.
 - **OE edge cases.** OE returns 0 for an eval batch with a single level, where the official code
   would stop with an error.
+
+## How the match with Parts A, B and C was checked
+
+Part F keeps 1,085 of Part A's 1,090 lines byte for byte and adds 412 lines. These are the
+five changed lines:
+- one comment;
+- the `PART` line;
+- the version date;
+- the decoder lookup, which now reads `arm.get("decode", arm["head"])`;
+- the trainer choice, which uses `FeatArmTrainer` only for an arm with `features=True`.
+
+For all 11 arms of Parts A–C, the decoder and trainer they get are exactly the ones they got
+before, and this was checked programmatically.
