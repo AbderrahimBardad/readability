@@ -1,0 +1,248 @@
+{
+  "arm": "PLR",
+  "group": "core",
+  "target": "Lee & Vajjala, Findings of ACL 2022 (NPRM pairwise logistic); control MSE",
+  "head": "reg",
+  "micro_batch": 64,
+  "grad_accum": 1,
+  "gradient_checkpointing": true,
+  "epochs": 6,
+  "loss_is_batch_statistic": true,
+  "history": [
+    {
+      "eval_loss": 4.28054666519165,
+      "eval_qwk": 0.823131127400788,
+      "eval_acc19": 0.27879616963064296,
+      "eval_acc19_pm1": 0.6653898768809849,
+      "eval_dist": 1.362517099863201,
+      "eval_acc7": 0.5138166894664843,
+      "eval_acc5": 0.6253077975376197,
+      "eval_acc3": 0.7398084815321477,
+      "eval_macro_f1": 0.15675041498202508,
+      "eval_far_ge3": 0.15006839945280437,
+      "eval_far_ge5": 0.04432284541723666,
+      "eval_runtime": 8.5635,
+      "eval_samples_per_second": 853.623,
+      "eval_steps_per_second": 53.366,
+      "epoch": 1.0,
+      "step": 857
+    },
+    {
+      "eval_loss": 3.882054328918457,
+      "eval_qwk": 0.8243186498247989,
+      "eval_acc19": 0.3222982216142271,
+      "eval_acc19_pm1": 0.6905608755129959,
+      "eval_dist": 1.2626538987688098,
+      "eval_acc7": 0.553077975376197,
+      "eval_acc5": 0.6359781121751026,
+      "eval_acc3": 0.73406292749658,
+      "eval_macro_f1": 0.19939504241705508,
+      "eval_far_ge3": 0.13857729138166894,
+      "eval_far_ge5": 0.035841313269493844,
+      "eval_runtime": 8.7247,
+      "eval_samples_per_second": 837.856,
+      "eval_steps_per_second": 52.38,
+      "epoch": 2.0,
+      "step": 1714
+    },
+    {
+      "eval_loss": 4.128785610198975,
+      "eval_qwk": 0.8275665269419057,
+      "eval_acc19": 0.3796169630642955,
+      "eval_acc19_pm1": 0.7173734610123119,
+      "eval_dist": 1.207934336525308,
+      "eval_acc7": 0.5831737346101231,
+      "eval_acc5": 0.6618331053351573,
+      "eval_acc3": 0.7470588235294118,
+      "eval_macro_f1": 0.252199441545859,
+      "eval_far_ge3": 0.13611491108071136,
+      "eval_far_ge5": 0.043091655266757865,
+      "eval_runtime": 8.6266,
+      "eval_samples_per_second": 847.381,
+      "eval_steps_per_second": 52.976,
+      "epoch": 3.0,
+      "step": 2571
+    },
+    {
+      "eval_loss": 4.219108581542969,
+      "eval_qwk": 0.824892627677271,
+      "eval_acc19": 0.40314637482900134,
+      "eval_acc19_pm1": 0.7261285909712722,
+      "eval_dist": 1.1928864569083448,
+      "eval_acc7": 0.5969904240766074,
+      "eval_acc5": 0.6632010943912449,
+      "eval_acc3": 0.7467852257181943,
+      "eval_macro_f1": 0.3070971152650131,
+      "eval_far_ge3": 0.14049247606019152,
+      "eval_far_ge5": 0.04610123119015048,
+      "eval_runtime": 8.5298,
+      "eval_samples_per_second": 856.991,
+      "eval_steps_per_second": 53.577,
+      "epoch": 4.0,
+      "step": 3428
+    },
+    {
+      "eval_loss": 4.216596603393555,
+      "eval_qwk": 0.8237132054142304,
+      "eval_acc19": 0.41231190150478797,
+      "eval_acc19_pm1": 0.7192886456908345,
+      "eval_dist": 1.1864569083447332,
+      "eval_acc7": 0.591655266757866,
+      "eval_acc5": 0.655266757865937,
+      "eval_acc3": 0.7361149110807114,
+      "eval_macro_f1": 0.3376801650112766,
+      "eval_far_ge3": 0.13980848153214775,
+      "eval_far_ge5": 0.04569083447332421,
+      "eval_runtime": 8.7221,
+      "eval_samples_per_second": 838.1,
+      "eval_steps_per_second": 52.396,
+      "epoch": 5.0,
+      "step": 4285
+    },
+    {
+      "eval_loss": 4.304502487182617,
+      "eval_qwk": 0.82459451832672,
+      "eval_acc19": 0.4127222982216142,
+      "eval_acc19_pm1": 0.7192886456908345,
+      "eval_dist": 1.1923392612859096,
+      "eval_acc7": 0.5965800273597811,
+      "eval_acc5": 0.6588235294117647,
+      "eval_acc3": 0.7400820793433652,
+      "eval_macro_f1": 0.3427322367712998,
+      "eval_far_ge3": 0.1384404924760602,
+      "eval_far_ge5": 0.047058823529411764,
+      "eval_runtime": 8.7493,
+      "eval_samples_per_second": 835.497,
+      "eval_steps_per_second": 52.233,
+      "epoch": 6.0,
+      "step": 5142
+    }
+  ],
+  "selected_by": "lowest dev eval_loss over all epochs, no early stopping (train.py:481-483)",
+  "selected_epoch": 2.0,
+  "realised_train_batch": 64,
+  "steps_per_epoch_observed": [
+    857,
+    857,
+    857,
+    857,
+    857,
+    857
+  ],
+  "steps_per_epoch_expected": [
+    857
+  ],
+  "steps_per_epoch_ok": true,
+  "dev": {
+    "qwk": 0.8243186498247989,
+    "acc19": 0.3222982216142271,
+    "acc19_pm1": 0.6905608755129959,
+    "dist": 1.2626538987688098,
+    "acc7": 0.553077975376197,
+    "acc5": 0.6359781121751026,
+    "acc3": 0.73406292749658,
+    "macro_f1": 0.19939504241705508,
+    "far_ge3": 0.13857729138166894,
+    "far_ge5": 0.035841313269493844
+  },
+  "test": {
+    "qwk": 0.8325910973607703,
+    "acc19": 0.3122426571507,
+    "acc19_pm1": 0.7090310183914357,
+    "dist": 1.21959923140269,
+    "acc7": 0.5586055448805929,
+    "acc5": 0.6312105407631073,
+    "acc3": 0.7161679934120231,
+    "macro_f1": 0.2002448678273704,
+    "far_ge3": 0.13244578643974747,
+    "far_ge5": 0.031018391435629976
+  },
+  "selection_check": {
+    "logged_at_selected_epoch": {
+      "qwk": 0.8243186498247989,
+      "acc19": 0.3222982216142271,
+      "dist": 1.2626538987688098
+    },
+    "reloaded_snapshot_dev": {
+      "qwk": 0.8243186498247989,
+      "acc19": 0.3222982216142271,
+      "dist": 1.2626538987688098
+    },
+    "abs_diff": {
+      "qwk": 0.0,
+      "acc19": 0.0,
+      "dist": 0.0
+    },
+    "exact": true
+  },
+  "ablation_qwk_selected": {
+    "selected_by": "highest dev QWK (ZAI/STBW rule, NOT BAREC's); ablation, dev leaks",
+    "selected_epoch": 3.0,
+    "dev": {
+      "qwk": 0.8275665269419057,
+      "acc19": 0.3796169630642955,
+      "acc19_pm1": 0.7173734610123119,
+      "dist": 1.207934336525308,
+      "acc7": 0.5831737346101231,
+      "acc5": 0.6618331053351573,
+      "acc3": 0.7470588235294118,
+      "macro_f1": 0.252199441545859,
+      "far_ge3": 0.13611491108071136,
+      "far_ge5": 0.043091655266757865
+    },
+    "test": {
+      "qwk": 0.8411067455782995,
+      "acc19": 0.3856711501509745,
+      "acc19_pm1": 0.7320889376887181,
+      "dist": 1.1395827614603349,
+      "acc7": 0.5852319516881691,
+      "acc5": 0.6494647268734559,
+      "acc3": 0.7250892121877573,
+      "macro_f1": 0.2705551255292596,
+      "far_ge3": 0.12709305517430688,
+      "far_ge5": 0.034312379906670326
+    },
+    "selection_check": {
+      "logged_at_selected_epoch": {
+        "qwk": 0.8275665269419057,
+        "acc19": 0.3796169630642955,
+        "dist": 1.207934336525308
+      },
+      "reloaded_snapshot_dev": {
+        "qwk": 0.8275665269419057,
+        "acc19": 0.3796169630642955,
+        "dist": 1.207934336525308
+      },
+      "abs_diff": {
+        "qwk": 0.0,
+        "acc19": 0.0,
+        "dist": 0.0
+      },
+      "exact": true
+    }
+  },
+  "provenance": {
+    "family": "barec_exact_v3",
+    "script": "barec_exact_v3_partE (2026-09-29)",
+    "part": "E",
+    "utc": "2026-10-08T11:09:15+00:00",
+    "python": "3.13.15",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.16.1",
+    "datasets": "4.8.5",
+    "accelerate": "1.14.0",
+    "cuda_visible_devices": "0",
+    "cuda_device_count": 1,
+    "gpu_name": "Tesla T4",
+    "dataset": "CAMeL-Lab/BAREC-Corpus-v1.0",
+    "dataset_sha": "3a336527783c4c3311a900429203bf4e25c7a80f",
+    "smoke": false,
+    "n_gpu": 1,
+    "per_device_train_batch": 64,
+    "grad_accum": 1,
+    "realised_train_batch": 64,
+    "eval_batch": 16,
+    "fp16": true
+  },
+  "minutes": 31.8
+}
