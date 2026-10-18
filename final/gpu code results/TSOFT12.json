@@ -1,0 +1,248 @@
+{
+  "arm": "TSOFT12",
+  "group": "new",
+  "target": "new: Zeng et al. 2022 (Findings EMNLP) readability soft labels, c=1.2",
+  "head": "cls",
+  "micro_batch": 16,
+  "grad_accum": 4,
+  "gradient_checkpointing": false,
+  "epochs": 6,
+  "loss_is_batch_statistic": false,
+  "history": [
+    {
+      "eval_loss": 1.7546632289886475,
+      "eval_qwk": 0.8047663227877869,
+      "eval_acc19": 0.5398084815321478,
+      "eval_acc19_pm1": 0.7031463748290013,
+      "eval_dist": 1.1694938440492475,
+      "eval_acc7": 0.6508891928864569,
+      "eval_acc5": 0.6967168262653899,
+      "eval_acc3": 0.759781121751026,
+      "eval_macro_f1": 0.39546935928082994,
+      "eval_far_ge3": 0.14856361149110808,
+      "eval_far_ge5": 0.06580027359781122,
+      "eval_runtime": 8.3784,
+      "eval_samples_per_second": 872.479,
+      "eval_steps_per_second": 54.545,
+      "epoch": 1.0,
+      "step": 857
+    },
+    {
+      "eval_loss": 1.7388889789581299,
+      "eval_qwk": 0.8081039781991383,
+      "eval_acc19": 0.5585499316005472,
+      "eval_acc19_pm1": 0.7140902872777017,
+      "eval_dist": 1.1248974008207935,
+      "eval_acc7": 0.6612859097127223,
+      "eval_acc5": 0.7032831737346101,
+      "eval_acc3": 0.7705882352941177,
+      "eval_macro_f1": 0.4709961681911359,
+      "eval_far_ge3": 0.14952120383036935,
+      "eval_far_ge5": 0.06238030095759234,
+      "eval_runtime": 8.5088,
+      "eval_samples_per_second": 859.108,
+      "eval_steps_per_second": 53.709,
+      "epoch": 2.0,
+      "step": 1714
+    },
+    {
+      "eval_loss": 1.771716833114624,
+      "eval_qwk": 0.8136397134916398,
+      "eval_acc19": 0.5632010943912449,
+      "eval_acc19_pm1": 0.7154582763337893,
+      "eval_dist": 1.0920656634746921,
+      "eval_acc7": 0.6607387140902873,
+      "eval_acc5": 0.7012311901504787,
+      "eval_acc3": 0.7674418604651163,
+      "eval_macro_f1": 0.43057224678507744,
+      "eval_far_ge3": 0.1389876880984952,
+      "eval_far_ge5": 0.057729138166894664,
+      "eval_runtime": 8.2822,
+      "eval_samples_per_second": 882.62,
+      "eval_steps_per_second": 55.179,
+      "epoch": 3.0,
+      "step": 2571
+    },
+    {
+      "eval_loss": 1.8590888977050781,
+      "eval_qwk": 0.8119088349939885,
+      "eval_acc19": 0.5614227086183311,
+      "eval_acc19_pm1": 0.7212038303693571,
+      "eval_dist": 1.095485636114911,
+      "eval_acc7": 0.659781121751026,
+      "eval_acc5": 0.7025991792065663,
+      "eval_acc3": 0.7679890560875513,
+      "eval_macro_f1": 0.45802397668995837,
+      "eval_far_ge3": 0.13885088919288646,
+      "eval_far_ge5": 0.06265389876880985,
+      "eval_runtime": 8.3118,
+      "eval_samples_per_second": 879.468,
+      "eval_steps_per_second": 54.982,
+      "epoch": 4.0,
+      "step": 3428
+    },
+    {
+      "eval_loss": 1.9812119007110596,
+      "eval_qwk": 0.8084781897550398,
+      "eval_acc19": 0.5545827633378932,
+      "eval_acc19_pm1": 0.713953488372093,
+      "eval_dist": 1.1151846785225719,
+      "eval_acc7": 0.6532147742818057,
+      "eval_acc5": 0.699452804377565,
+      "eval_acc3": 0.7660738714090287,
+      "eval_macro_f1": 0.4390325793393836,
+      "eval_far_ge3": 0.14322845417236663,
+      "eval_far_ge5": 0.05978112175102599,
+      "eval_runtime": 8.2347,
+      "eval_samples_per_second": 887.704,
+      "eval_steps_per_second": 55.497,
+      "epoch": 5.0,
+      "step": 4285
+    },
+    {
+      "eval_loss": 2.0486814975738525,
+      "eval_qwk": 0.8114250388235107,
+      "eval_acc19": 0.5526675786593708,
+      "eval_acc19_pm1": 0.7184678522571819,
+      "eval_dist": 1.109439124487004,
+      "eval_acc7": 0.654719562243502,
+      "eval_acc5": 0.6991792065663475,
+      "eval_acc3": 0.7648426812585499,
+      "eval_macro_f1": 0.45729817521301186,
+      "eval_far_ge3": 0.14227086183310533,
+      "eval_far_ge5": 0.05978112175102599,
+      "eval_runtime": 8.3975,
+      "eval_samples_per_second": 870.501,
+      "eval_steps_per_second": 54.421,
+      "epoch": 6.0,
+      "step": 5142
+    }
+  ],
+  "selected_by": "lowest dev eval_loss over all epochs, no early stopping (train.py:481-483)",
+  "selected_epoch": 2.0,
+  "realised_train_batch": 64,
+  "steps_per_epoch_observed": [
+    857,
+    857,
+    857,
+    857,
+    857,
+    857
+  ],
+  "steps_per_epoch_expected": [
+    857
+  ],
+  "steps_per_epoch_ok": true,
+  "dev": {
+    "qwk": 0.8081039781991383,
+    "acc19": 0.5585499316005472,
+    "acc19_pm1": 0.7140902872777017,
+    "dist": 1.1248974008207935,
+    "acc7": 0.6612859097127223,
+    "acc5": 0.7032831737346101,
+    "acc3": 0.7705882352941177,
+    "macro_f1": 0.4709961681911359,
+    "far_ge3": 0.14952120383036935,
+    "far_ge5": 0.06238030095759234
+  },
+  "test": {
+    "qwk": 0.8184348264719343,
+    "acc19": 0.5487235794674719,
+    "acc19_pm1": 0.7112270107054626,
+    "dist": 1.085231951688169,
+    "acc7": 0.6465824869612956,
+    "acc5": 0.6872083447707933,
+    "acc3": 0.7491078781224265,
+    "macro_f1": 0.4560905464382614,
+    "far_ge3": 0.1432884984902553,
+    "far_ge5": 0.0565468020861927
+  },
+  "selection_check": {
+    "logged_at_selected_epoch": {
+      "qwk": 0.8081039781991383,
+      "acc19": 0.5585499316005472,
+      "dist": 1.1248974008207935
+    },
+    "reloaded_snapshot_dev": {
+      "qwk": 0.8081039781991383,
+      "acc19": 0.5585499316005472,
+      "dist": 1.1248974008207935
+    },
+    "abs_diff": {
+      "qwk": 0.0,
+      "acc19": 0.0,
+      "dist": 0.0
+    },
+    "exact": true
+  },
+  "ablation_qwk_selected": {
+    "selected_by": "highest dev QWK (ZAI/STBW rule, NOT BAREC's); ablation, dev leaks",
+    "selected_epoch": 3.0,
+    "dev": {
+      "qwk": 0.8136397134916398,
+      "acc19": 0.5632010943912449,
+      "acc19_pm1": 0.7154582763337893,
+      "dist": 1.0920656634746921,
+      "acc7": 0.6607387140902873,
+      "acc5": 0.7012311901504787,
+      "acc3": 0.7674418604651163,
+      "macro_f1": 0.43057224678507744,
+      "far_ge3": 0.1389876880984952,
+      "far_ge5": 0.057729138166894664
+    },
+    "test": {
+      "qwk": 0.8201940611333108,
+      "acc19": 0.5588800439198462,
+      "acc19_pm1": 0.7189129838045567,
+      "dist": 1.0528410650562723,
+      "acc7": 0.6557782047762832,
+      "acc5": 0.6921493274773538,
+      "acc3": 0.7515783694757069,
+      "macro_f1": 0.4469554978078974,
+      "far_ge3": 0.13189678836124075,
+      "far_ge5": 0.05297831457589899
+    },
+    "selection_check": {
+      "logged_at_selected_epoch": {
+        "qwk": 0.8136397134916398,
+        "acc19": 0.5632010943912449,
+        "dist": 1.0920656634746921
+      },
+      "reloaded_snapshot_dev": {
+        "qwk": 0.8136397134916398,
+        "acc19": 0.5632010943912449,
+        "dist": 1.0920656634746921
+      },
+      "abs_diff": {
+        "qwk": 0.0,
+        "acc19": 0.0,
+        "dist": 0.0
+      },
+      "exact": true
+    }
+  },
+  "provenance": {
+    "family": "barec_exact_v3",
+    "script": "barec_exact_v3_partD (2026-09-28, new losses CORN / TSOFT12 / LBL10)",
+    "part": "D",
+    "utc": "2026-09-29T05:26:00+00:00",
+    "python": "3.12.13",
+    "torch": "2.10.0+cu128",
+    "transformers": "5.0.0",
+    "datasets": "5.0.0",
+    "accelerate": "1.13.0",
+    "cuda_visible_devices": "0",
+    "cuda_device_count": 1,
+    "gpu_name": "Tesla T4",
+    "dataset": "CAMeL-Lab/BAREC-Corpus-v1.0",
+    "dataset_sha": "3a336527783c4c3311a900429203bf4e25c7a80f",
+    "smoke": false,
+    "n_gpu": 1,
+    "per_device_train_batch": 16,
+    "grad_accum": 4,
+    "realised_train_batch": 64,
+    "eval_batch": 16,
+    "fp16": true
+  },
+  "minutes": 26.1
+}
