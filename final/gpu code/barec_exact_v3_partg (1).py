@@ -166,16 +166,49 @@ SCRIPT_FAMILY = "barec_exact_v3"
 SCRIPT_VERSION = f"{SCRIPT_FAMILY}_part{PART} (2026-10-08)"
 
 # ----------------------------------------------------------------- 0. install
-def _pip(*pkgs):
-    subprocess.run([sys.executable, "-m", "pip", "install", "-q", *pkgs], check=False)
+# Match the core training environment used by Parts A-E.
+# Python itself is controlled by the notebook image; this cell aligns packages.
+import importlib.metadata as _metadata
 
-try:
-    import transformers, datasets  # noqa
-except Exception:
-    _pip("transformers", "datasets", "accelerate")
+CORE_VERSIONS = {
+    "transformers": "5.0.0",
+    "datasets": "5.0.0",
+    "accelerate": "1.13.0",
+    "torch": "2.10.0",
+}
 
+def _pip(*pkgs, index_url=None):
+    cmd = [sys.executable, "-m", "pip", "install", "-q"]
+    if index_url:
+        cmd += ["--index-url", index_url]
+    cmd += list(pkgs)
+    subprocess.run(cmd, check=True)
+
+def _version(package):
+    try:
+        return _metadata.version(package)
+    except _metadata.PackageNotFoundError:
+        return None
+
+# Install the matching CUDA 12.8 PyTorch wheel if the image has another version.
+if (_version("torch") or "").split("+")[0] != CORE_VERSIONS["torch"]:
+    _pip("torch==2.10.0", index_url="https://download.pytorch.org/whl/cu128")
+
+for _package in ("transformers", "datasets", "accelerate"):
+    if _version(_package) != CORE_VERSIONS[_package]:
+        _pip(f"{_package}=={CORE_VERSIONS[_package]}")
+
+import transformers, datasets
 import numpy as np
 import torch
+for _package, _expected in CORE_VERSIONS.items():
+    _actual = torch.__version__.split("+")[0] if _package == "torch" else _version(_package)
+    if _actual != _expected:
+        raise RuntimeError(f"Environment mismatch for {_package}: expected {_expected}, got {_actual}")
+if not sys.version.startswith("3.12."):
+    print(f"WARNING: Parts A-E used Python 3.12.13; this run uses Python {platform.python_version()}. "
+          "Core libraries are pinned, but Python-level reproducibility is not exact.")
+
 import torch.nn as nn
 import torch.nn.functional as F
 from datasets import load_dataset, Dataset, DatasetDict
