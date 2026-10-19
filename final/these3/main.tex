@@ -238,145 +238,104 @@ The pipeline reproduces the published benchmark: seven of its eight losses land 
 
 % Chapter 1: Introduction
 \chapter{Introduction}\label{chap:introduction}
+
 \section{Background and Motivation}
 
-Automatic readability assessment is now an important research topic in Natural Language Processing (NLP) and in educational technology \cite{dubay2004principles}. Readability assessment tries to determine how difficult a text is for a specific group of readers. These systems are useful in education, for example in intelligent tutoring systems, curriculum design and text simplification\cite{vajjala2022trends}.
+Readability assessment estimates how difficult a text is for a particular group of readers. It is useful when selecting learning materials, matching texts to learners' reading abilities, and identifying texts that may need simplification. In education, for example, a teacher may need to decide whether a passage is suitable for a particular school grade. Automatic readability assessment aims to support such decisions by predicting text difficulty from linguistic evidence rather than relying entirely on manual inspection \cite{dubay2004principles,vajjala2022trends}.
 
-Arabic readability assessment is still a hard task because Arabic is linguistically complex, with rich morphology, flexible syntax and a good deal of lexical ambiguity \cite{nassiri2023approaches}.Deep learning and transformer based language models have advanced a lot in recent years, but fine grained Arabic readability prediction has received much less attention than English and other languages.
+The task is challenging because text difficulty is not determined by a single feature. Vocabulary, sentence structure, morphology, and the knowledge required to interpret a passage can all affect how difficult it is to read. These factors also vary across languages, so methods and readability formulas designed for English cannot necessarily be transferred directly to Arabic without considering the properties of Arabic and the target reading context.
 
-The Balanced Arabic Readability Evaluation Corpus (BAREC) recently introduced a large scale benchmark for Arabic readability assessment. It contains 69,441 sentences spread over 19 readability levels, which are named in the Abjad order of the Arabic letters (1-\textit{alif} through 19-\textit{qaf}), and ranging from kindergarten to postgraduate comprehension \cite{elmadani2025barec}. The corpus provides an essential resource for evaluating modern deep learning approaches to Arabic readability modeling. Its release was accompanied by the BAREC 2025 Shared Task \cite{elmadani2025sharedtask}, in which several systems tried ordinal aware modeling, among them the ZAI system, which used AraBERTv2 with a CORAL ordinal head\cite{nazzal2025zai} and the STBW system using a two-phase MSE/Soft-QWK training strategy \cite{trigui2025stbw}.
+Arabic readability assessment is particularly challenging because Arabic has rich morphology, extensive cliticization, lexical ambiguity, and flexible syntactic structures \cite{nassiri2023approaches}. A written Arabic word may contain a stem together with attached conjunctions, prepositions, articles, or pronouns. Undiacritized words can also have more than one interpretation, with the intended meaning depending on context. These properties affect tokenization and representation, and they make it important to use Arabic-specific data and methods rather than assume that approaches developed for other languages will transfer unchanged.
 
-Most traditional classification approaches treat readability labels as independent classes and ignore the order between levels. Readability levels are ordered by nature, though. When the true level is 7, predicting level 8 is off by one grade, while predicting level 1 would put a second grade text at kindergarten level. Standard Cross Entropy loss penalizes both errors the same way and so throws away the ordering information in the labels. This is the reason for using ordinal regression methods and distance aware loss functions \cite{castagnos2022ordinal}.
+\section{Arabic Readability Assessment and Previous Work}
 
-This thesis compares 13 selected configurations under a common pipeline: Cross-Entropy (CE), Mean Squared Error regression (MSE), Ordinal Log Loss with \(\alpha=1.5\) (OLL15), Earth Mover's Distance (EMD), one soft-label setting (SOFT2), the CORAL and CORN ordinal heads, a two-phase MSE-to-Soft-QWK schedule, Mean-Variance loss (MV), DLDL-v2 (DLDL2), Concordance Correlation Coefficient loss (CCC), and two regression objectives with pairwise ranking terms (RANK and PLR). MSE is included as a standalone baseline and as the first phase of the two-phase schedule, allowing the contribution of the Soft-QWK phase to be examined. The main comparison uses AraBERTv2 with D3Tok morphological segmentation and the official BAREC splits; QWK is the primary metric. Additional completed runs are treated as exploratory results rather than included in the main comparison.
-\section{Challenges in Arabic Readability Assessment}
-Arabic readability assessment is a hard task for several linguistic and computational reasons. Compared with English, Arabic has a rich morphology, a flexible sentence structure and a high degree of lexical ambiguity, and all of these make automatic text processing more difficult.
-The first difficulty is morphology. An Arabic word is often built from a root with prefixes, suffixes and clitics attached, so the same word appears in many forms and lexical representations become sparse. As a result, tokenization and feature extraction are harder than in many other languages.
-\begin{figure}[H]
+Research on Arabic readability assessment has developed alongside Arabic natural language processing resources and pretrained language models. Earlier approaches commonly relied on manually designed linguistic features or conventional machine-learning models. Such approaches provide useful baselines, but their performance depends on the features, annotation scheme, and data available. More recent systems use pretrained Arabic language models to obtain contextual representations, allowing a model to use information from the sentence as a whole.
 
-\centering
+However, progress in this area depends not only on the model architecture but also on the availability of suitable annotated corpora and consistent evaluation protocols. When datasets differ in size, readability-level definitions, preprocessing, or evaluation metrics, the results of separate studies may not be directly comparable. In addition, a model can perform differently depending on whether readability is treated as ordinary classification, regression, or an explicitly ordinal prediction task. These differences motivate a controlled comparison in which the dataset, text representation, encoder, data splits, and training protocol are held fixed while the learning objective or prediction head is varied.
 
-\includegraphics[width=0.72\textwidth]{morphology.png}
+Recent work using the BAREC benchmark illustrates several directions for Arabic readability modeling. The ZAI system explored a CORAL ordinal-regression head with AraBERTv2, while the STBW system studied a two-phase training strategy that combines mean squared error with a differentiable Soft-QWK objective \cite{nazzal2025zai,trigui2025stbw}. These systems provide relevant starting points for investigating how ordinal structure can be used. They should not be interpreted as failed approaches; rather, they make different modeling choices and use experimental details that must be considered when comparing results. The relevant prior studies, their methods, reported findings, and differences from the present work are examined in Chapter~\ref{chap:relatedwork}.
 
-\caption{Example of Arabic morphological derivation from the root ``k-t-b'', illustrating the richness and complexity of Arabic word formation.}
+\section{The BAREC Benchmark}
 
-\label{fig:arabic_morphology}
+The Balanced Arabic Readability Evaluation Corpus (BAREC) provides a large benchmark for fine-grained Arabic readability assessment. It contains 69,441 Arabic sentences assigned to 19 ordered readability levels, covering a range from kindergarten to postgraduate reading difficulty. The levels are represented using the Abjad ordering of Arabic letters. The corpus and its accompanying benchmark make it possible to evaluate systems on the same task and to investigate whether models can distinguish between closely spaced levels as well as more distant ones \cite{elmadani2025barec}.
 
-\end{figure}
+BAREC is especially relevant to this thesis for two reasons. First, its 19-level annotation scheme defines a fine-grained ordered prediction task rather than a small number of broad categories. Second, the benchmark provides official training, development, and test splits and a reference experimental setup. This supports a more controlled comparison of methods than would be possible if each method were trained on a different dataset or evaluated under a different split.
 
-\vspace{0.3cm}
+The BAREC benchmark also provides a basis for studying Arabic-specific input representations. This thesis uses the corpus's D3Tok representation, in which morphological segments and clitics are made explicit, together with AraBERTv2. The choice follows the benchmark configuration used for its loss-function comparison \cite{elmadani2025barec}. The dataset, splits, input representation, and model setup are described in detail in Chapter~\ref{chap:methodology}; Chapter~\ref{chap:relatedwork} reviews the benchmark and related systems.
 
-In addition to root-based derivation, Arabic exhibits extensive \emph{cliticization}: function words such as the definite article, conjunctions, prepositions and pronouns are written attached to a host word. For example, the single written token\textit{walfid\d{d}a} (meaning and the silver) joins three morphological units: the conjunction\textit{wa+} (meaning *and*), the definite article\textit{al+} (``the''), and the noun \textit{fid\d{d}a} (``silver''). The The BAREC annotation guidelines explicitly name the presence and type of clitics as markers of readability level \cite{habash2025guidelines},which is why making them explicit through morphological segmentation (D3Tok) is central to the methodology of this thesis.
+\section{Why Ordinal Learning Matters}
 
-Lexical ambiguity is another important challenge, since a single undiacritized Arabic word can correspond to several distinct readings. For example, the word \textit{`ilm}/\textit{`alam}/\textit{`allama} can mean \emph{knowledge}, \emph{flag} or \emph{he taught} depending on the context. Ambiguity has a direct effect on readability, because resolving the rarer readings requires more advanced linguistic knowledge, and the BAREC guidelines therefore place constructions that need diacritization for disambiguation at the higher readability levels. Arabic syntax also allows flexible word order, which makes sentences harder for machine learning models to understand.
+Readability levels have a natural order: a sentence assigned level 8 is closer in difficulty to level 9 than to level 1, all else being equal. Ordinary multiclass classification does not directly represent this order. For example, a classifier trained with Cross-Entropy loss learns to distinguish the correct class from the other classes, but the standard objective does not explicitly encode the distance between a predicted level and the gold level. Consequently, predicting a neighboring level and predicting a very distant level are not distinguished by the class labels themselves in the way that an ordinal metric would distinguish them.
 
-Compared with English readability research, Arabic readability assessment also has few large scale annotated datasets and benchmark resources. The BAREC dataset improved this situation considerably, but fine grained readability prediction across 19 ordered levels is still a difficult task.
+This motivates examining approaches that represent the ordered structure more directly. These include scalar regression, distribution-based objectives that place probability mass over nearby levels, cumulative ordinal heads, and objectives designed to account for agreement or distance between predicted and true labels. No single family is guaranteed to be best for every dataset or metric. A fair comparison is therefore needed to establish how these approaches behave on the same Arabic readability task.
 
-These challenges lead to two complementary design decisions. First, we use pretrained transformer models, whose contextual representations learned from large Arabic corpora help with the morphological, lexical and syntactic complexity. Second, we use ordinal aware learning methods to model the ordered structure of the readability levels, which standard classification ignores.
 \section{Problem Statement}
-Traditional readability assessment systems often treat readability prediction as a standard classification problem trained with Cross Entropy loss. Readability levels, however, are ordered by nature, and nearby levels are more similar than distant ones.
 
-In standard classification, when the true level is 11, predicting level 10 gets exactly the same penalty as predicting level 1, although the first is a near miss and the second a far miss. Because of this, classification models cannot properly capture the ordinal structure of readability labels.
+The problem addressed in this thesis is the prediction of one of 19 ordered Arabic readability levels for a sentence from the BAREC corpus. The central methodological question is:
 
-This thesis therefore investigates the following question: given a fixed AraBERTv2 backbone with D3Tok morphological segmentation and a common BAREC training protocol, \emph{how do selected classification, regression, and ordinal-learning objectives compare on 19-level Arabic readability assessment in terms of QWK, exact-match accuracy, and prediction-error distance?}
+\begin{quote}
+Under a fixed AraBERTv2--D3Tok pipeline and a common BAREC experimental protocol, how do selected classification, regression, and ordinal-learning objectives compare in terms of quadratic weighted kappa, exact-match accuracy, and prediction-error distance?
+\end{quote}
+
+The question focuses on the effect of the prediction head and learning objective. To make the comparison meaningful, the main experimental setup keeps the corpus and its official splits, input representation, encoder, and core training protocol fixed. This design does not assume in advance that an ordinal-aware method must outperform ordinary classification. Instead, it tests the methods using complementary evaluation measures and examines the types of prediction errors they make.
 
 \subsection{Research Objectives}
-The main objectives of this thesis are:
-\begin{itemize}
 
-\item Determine which ordinal head and loss function give the highest QWK on the BAREC benchmark when the corpus, the encoder and the entire training protocol stay fixed.
-\item Compare 13 selected configurations on a single AraBERTv2 and D3Tok backbone, including the two-phase MSE-to-Soft-QWK schedule and its standalone MSE control.
-
-\item Test whether two regression losses with a pairwise ranking term (RANK and PLR), taken from readability research on other languages, and a conditional ordinal head (CORN) carry over to 19-level Arabic readability under the same protocol.
-
-\item Quantify the trade off between exact-match accuracy (\textit{Acc19}) and distance aware agreement (QWK) across the loss families.
-
-\item Measure the error distance of each method, separating near misses from far misses, as the research topic requires.
-
-\item Compare cumulative ordinal heads (CORAL and CORN) with classification, scalar regression, distribution-based, and ranking-based objectives.
-
-\item Measure how much of the difference between published systems is due to the checkpoint selection rule and the decision threshold rather than to the loss.
-
-\item Evaluate predictions at multiple granularities ($19$, $7$, $5$ and $3$ levels) using the BAREC collapsing scheme.
-
-\item Compare the results with the original BAREC benchmark, with the systems of the BAREC 2025 Shared Task and with the agreement between human annotators.
-
-\end{itemize}
-
-
-
-\subsection{Research Contributions}
-The main contributions of this thesis are:
+The objectives of this thesis are:
 
 \begin{itemize}
-
-\item A comparison of 13 selected configurations under one fixed AraBERTv2--D3Tok pipeline, spanning classification, scalar regression, cumulative ordinal heads, distribution-based objectives, ranking-based objectives, and a two-phase metric-aligned schedule.
-% Compare the results with the original BAREC benchmark, with the systems of the BAREC 2025 Shared Task and with the agreement between human annotators.
-
-\item An adaptation of three objectives from outside the BAREC benchmark to 19-level Arabic readability: two regression losses with a pairwise ranking term, RANK and PLR, taken from readability research on other languages \cite{trokhymovych2024open,lee2022neural}, and the conditional ordinal head CORN \cite{shi2023deep}. None of them had been evaluated in the BAREC benchmark or by the ZAI and STBW systems, and all three run under the same protocol as the other configurations.
-
-\item A verified reproduction of the benchmark's loss comparison, where the one visible discrepancy is explained and traced back to the checkpoint selection rule.
-
-
-\item Two metrics of error distance, the share of predictions at least three and at least five levels away from the gold level. They separate near misses from far misses and show that the lead in QWK comes from removing far misses and not from lowering the average error.
-
-\item A comparison with published BAREC results that notes the differences in preprocessing, input features, checkpoint selection, and evaluation protocol that limit direct numerical comparisons.
-
-
-
-\item A comparison of the results with the published BAREC benchmark, the systems of the BAREC 2025 Shared Task and the reported agreement between human annotators.
-
+    \item Establish a consistent experimental pipeline for fine-grained Arabic readability assessment using BAREC, D3Tok, and AraBERTv2.
+    \item Compare selected classification, regression, distribution-based, ranking-based, and ordinal-regression approaches under the same main experimental setup.
+    \item Reproduce relevant baseline and loss-function configurations from the BAREC benchmark to provide a reference point for the comparison.
+    \item Investigate whether methods that explicitly represent the order of readability levels behave differently from ordinary multiclass classification.
+    \item Evaluate the methods using quadratic weighted kappa (QWK), exact-match accuracy, adjacent-level accuracy, mean prediction distance, and the frequency of large prediction errors.
+    \item Examine whether findings from ordinal-regression and readability studies outside the original BAREC benchmark transfer to fine-grained Arabic readability assessment.
+    \item Compare the experimental design and findings with prior BAREC work while clearly identifying differences in preprocessing, model setup, metrics, and evaluation protocol.
 \end{itemize}
+
+\subsection{Research Contributions and Scope}
+
+The intended contribution of this thesis is a controlled empirical comparison of different learning objectives for the same fine-grained Arabic readability task. Its contribution is not the assumption that one method is universally superior, but the systematic examination of how different approaches behave when the main experimental conditions are held constant.
+
+The work has the following objectives as contributions:
+
+\begin{itemize}
+    \item A common AraBERTv2--D3Tok experimental pipeline for comparing selected learning objectives on the official BAREC splits.
+    \item An evaluation of multiple approaches to the ordered-label problem, including standard classification, scalar regression, distribution-based learning, cumulative ordinal heads, and ranking-based objectives.
+    \item A complementary evaluation of ordinal agreement, exact matches, near misses, and large prediction errors, rather than relying on a single metric.
+    \item An analysis of how the experimental protocol and methodological differences affect the interpretation of comparisons with published BAREC systems.
+\end{itemize}
+
+The main scope is the fine-tuning comparison. The configurations included in the final comparison are documented in Chapter~\ref{chap:methodology}, and their measured results are presented in Chapter~\ref{chap:results}. Exploratory runs are not described as part of the final comparison unless they have been verified and explicitly included in the reported experimental scope. This thesis does not claim that prior Arabic readability systems were unsuccessful; it builds on their datasets, baselines, and modeling ideas to conduct a more controlled comparison of selected approaches.
 
 \subsection{Methodology Overview}
-The proposed system for Arabic readability assessment combines a pretrained transformer language model with ordinal aware learning methods. The overall pipeline is shown in Figure~\ref{fig:pipeline} and proceeds as follows.
 
-The pipeline begins with the BAREC corpus, where each Arabic sentence carries an ordered readability level from 1 to 19. The input is the D3Tok column, a morphologically segmented representation in which clitics are separated from their host words and marked with a \texttt{+}. This input is used with AraBERTv2 because it matches the segmented representation used in the BAREC benchmark \cite{elmadani2025barec}. The text is tokenized and passed to AraBERTv2, whose pooled sentence representation is connected to a prediction head selected for each experiment.
+The study starts from the official BAREC data and uses the D3Tok text representation with the AraBERTv2 encoder. Each sentence is associated with one of the 19 ordered readability levels. A prediction head and its corresponding learning objective are then trained to predict the level. The main comparison keeps the data splits, input representation, encoder, and core training protocol consistent so that differences can be investigated in relation to the head or objective being evaluated.
 
-This representation goes to a prediction head whose form depends on the configuration. The softmax losses (cross entropy, ordinal log loss, EMD and SOFT2) use a linear layer with 19 outputs; regression, the Soft QWK schedule, RANK and PLR use a linear layer with a single output; CORAL uses a layer with 18 thresholds and one shared projection; and CORN uses a layer with 18 outputs, one for each conditional threshold. During training, the corresponding loss compares the output of the head with the gold label. At inference, the output is decoded to a level between 1 and 19 by taking the highest score, by rounding, or by counting how many thresholds are exceeded. Every configuration is trained and evaluated under the same protocol, with QWK as the primary metric, together with exact accuracy (\textit{Acc19}), adjacent accuracy ($\pm 1$ \textit{Acc19}), average distance (\textit{Dist}), the collapsed $7$-, $5$- and $3$-level accuracies, and the two error-distance metrics introduced in this thesis.
+The models are assessed with QWK as the primary metric, alongside exact-match accuracy and measures of prediction distance. QWK is useful for this task because it accounts for the magnitude of disagreement between ordered labels. The additional metrics provide complementary information: exact-match accuracy measures how often a model predicts the precise level, while distance-based measures describe how far its predictions are from the annotated level. Chapter~\ref{chap:methodology} provides the implementation and evaluation details; Chapter~\ref{chap:results} reports and discusses the experimental findings.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.78\linewidth]{pipeline.png}
-    \caption{The experimental pipeline. Everything drawn in blue is held fixed for every run; the prediction head and the loss function, drawn in grey, are the only components that vary.}
+    \caption{Overview of the experimental pipeline. The corpus, input representation, encoder, and core training protocol are held fixed in the main comparison, while the prediction head or learning objective varies by configuration.}
     \label{fig:pipeline}
 \end{figure}
-\vspace{0.3cm}
-
 
 \subsection{Thesis Organization}
 
 This thesis is organized as follows:
 
-\vspace{0.3cm}
-
 \begin{itemize}
-
-\item \textbf{Chapter 1 -- Introduction:}
-This chapter introduces the background and motivation of Arabic readability assessment. It also presents the research objectives, the challenges, the contributions, an overview of the methodology and the evaluation metrics used in this work.
-
-\vspace{0.2cm}
-
-\item \textbf{Chapter 2 -- Related Work:}
-This chapter reviews previous studies related to Arabic readability assessment, Arabic NLP challenges, pretrained language models, ordinal regression methods, pairwise ranking objectives for readability, and systems developed using the BAREC dataset.
-
-\vspace{0.2cm}
-
-\item \textbf{Chapter 3 -- Proposed Methodology:}
-This chapter describes the corpus and its splits, the D3Tok input representation, the encoder and the prediction heads, and the exact form of every loss function with the tests that verify it. It then describes the selected losses and heads, the training protocol, the evaluation metrics, and the checks used to verify the experiments.
-\vspace{0.2cm}
-
-\item \textbf{Chapter 4 -- Experiments and Results:}
-This chapter reports the integrity checks and results for the 13 selected configurations on the official development and test splits. It examines the trade-off between exact accuracy and ordinal agreement, analyzes prediction-error distance, compares the results with published systems, and discusses the limitations of the experiments.
-
-% One thing to check: this section says four ablations, but the abstract says three.
-\vspace{0.2cm}
-
-\item \textbf{Chapter 5 -- Conclusion and Future Work:}
-The final chapter brings the findings together, states the contributions and the limitations, and sets out the next steps. The first of these is a study over multiple seeds, which would turn the leading group from an observation into a measurement.
+    \item \textbf{Chapter 1 -- Introduction:} introduces readability assessment, the challenges of Arabic readability, the BAREC benchmark, the research problem, and the objectives and scope of this thesis.
+    \item \textbf{Chapter 2 -- Literature Review:} reviews readability assessment research, Arabic readability resources, the BAREC benchmark, and prior systems. It compares relevant papers by their datasets, model choices, methods, and reported results, and explains how they motivate the methods investigated in this thesis.
+    \item \textbf{Chapter 3 -- Proposed Methodology:} describes the dataset and official splits, D3Tok representation, AraBERTv2 encoder, prediction heads, learning objectives, training protocol, and evaluation metrics.
+    \item \textbf{Chapter 4 -- Experiments and Results:} presents the verified experimental results, compares the selected configurations, analyzes prediction errors, and discusses the findings in relation to prior work.
+    \item \textbf{Chapter 5 -- Conclusion and Future Work:} summarizes the conclusions supported by the experiments, discusses limitations, and identifies directions for further research.
 \end{itemize}
 
 \section{Summary of Introduction}
-This chapter introduced fine-grained Arabic readability assessment, the linguistic challenges involved, and the need to account for the ordinal structure of BAREC's 19 labels. It defined the research question and outlined the 13 selected configurations, the common AraBERTv2--D3Tok pipeline, and the evaluation metrics. The next chapter reviews related research and the systems that motivate the experimental choices.
+
+This chapter introduced readability assessment and explained why fine-grained Arabic readability prediction requires attention to Arabic linguistic characteristics and to the ordered nature of readability labels. It presented BAREC as the benchmark used in this study, motivated a controlled comparison of classification, regression, and ordinal-learning approaches, and stated the research question, objectives, and scope. The next chapter reviews the prior studies and systems that inform the experimental choices made in this thesis.
 
 % Chapter 2: 
 \chapter{Literature Review}
