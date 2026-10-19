@@ -163,7 +163,7 @@ T_START = time.time()
 PART = "G"   # the ONLY line that differs between the Part F and G files
 
 SCRIPT_FAMILY = "barec_exact_v3"
-SCRIPT_VERSION = f"{SCRIPT_FAMILY}_part{PART} (2026-10-08)"
+SCRIPT_VERSION = f"{SCRIPT_FAMILY}_part{PART} (2026-10-19-aligned)"
 
 # ----------------------------------------------------------------- 0. install
 # Match the core training environment used by Parts A-E.
@@ -1153,9 +1153,18 @@ def provenance(trainer=None, realised=None):
 
 def _valid_v3_result(res):
     p = res.get("provenance") or {}
-    return (p.get("family") == SCRIPT_FAMILY and not p.get("smoke", True)
+    # Do not restore the older F/G results: those used different core packages.
+    # Only restore results produced by this aligned script and pinned data revision.
+    return (p.get("family") == SCRIPT_FAMILY
+            and p.get("script") == SCRIPT_VERSION
+            and not p.get("smoke", True)
             and (p.get("n_gpu") is not None and p.get("n_gpu") <= 1)
             and p.get("realised_train_batch") == EXPECTED_TRAIN_BATCH
+            and p.get("dataset_sha") == DATASET_REVISION
+            and (p.get("torch") or "").split("+")[0] == CORE_VERSIONS["torch"]
+            and p.get("transformers") == CORE_VERSIONS["transformers"]
+            and p.get("datasets") == CORE_VERSIONS["datasets"]
+            and p.get("accelerate") == CORE_VERSIONS["accelerate"]
             and "dev" in res and "test" in res)
 
 
