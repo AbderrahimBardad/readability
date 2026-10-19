@@ -225,6 +225,9 @@ if torch.cuda.is_available() and torch.cuda.device_count() != 1:
         f"batch to 128 -- the v2 defect.")
 
 # ----------------------------------------------------------------- 1. config
+# Freeze the exact BAREC repository revision used by the already-recorded A-E runs.
+DATASET_REVISION = "3a336527783c4c3311a900429203bf4e25c7a80f"
+
 CONFIG = dict(
     model_name    = "aubmindlab/bert-base-arabertv2",   # BAREC 5.3
     dataset       = "CAMeL-Lab/BAREC-Corpus-v1.0",      # train.py:380
@@ -795,13 +798,13 @@ def self_test_metrics():
 def dataset_sha():
     try:
         from huggingface_hub import HfApi
-        return HfApi().dataset_info(CONFIG["dataset"]).sha
+        return HfApi().dataset_info(CONFIG["dataset"], revision=DATASET_REVISION).sha
     except Exception as e:
         return f"unavailable ({type(e).__name__})"
 
 
 def load_barec():
-    ds = load_dataset(CONFIG["dataset"])
+    ds = load_dataset(CONFIG["dataset"], revision=DATASET_REVISION)
     print("  splits as shipped:", {k: len(v) for k, v in ds.items()})
     dev_key = "dev" if "dev" in ds else "validation"
     assert dev_key in ds, f"no dev split; got {list(ds.keys())}"
@@ -1481,7 +1484,9 @@ def main():
     set_seed(CONFIG["seed"])
     print("\n[data]")
     DATASET_SHA = dataset_sha()
-    print(f"  dataset revision: {DATASET_SHA}")
+    if DATASET_SHA != DATASET_REVISION:
+        raise RuntimeError(f"BAREC revision mismatch: expected {DATASET_REVISION}, got {DATASET_SHA}")
+    print(f"  pinned dataset revision: {DATASET_SHA}")
     ds = load_barec()
 
     tok = AutoTokenizer.from_pretrained(CONFIG["model_name"])
