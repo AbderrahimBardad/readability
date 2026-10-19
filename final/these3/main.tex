@@ -317,10 +317,10 @@ The main contributions of this thesis are:
 
 \item A verified reproduction of the benchmark's loss comparison, where the one visible discrepancy is explained and traced back to the checkpoint selection rule.
 
-\item An initialisation of the CORAL cut points from the cumulative training label frequencies, motivated by how far the benchmark learning rate lets them travel. We pair it with a direct measurement of how much the cut points actually move and with two ablations that test the argument from opposite directions.
+
 \item Two metrics of error distance, the share of predictions at least three and at least five levels away from the gold level. They separate near misses from far misses and show that the lead in QWK comes from removing far misses and not from lowering the average error.
 
-\item A measurement of how much the checkpoint selection rule and the CORAL decision threshold are worth, which is what makes systems published under different protocols comparable.
+\item A comparison with published BAREC results that notes the differences in preprocessing, input features, checkpoint selection, and evaluation protocol that limit direct numerical comparisons.
 
 
 
@@ -333,7 +333,7 @@ The proposed system for Arabic readability assessment combines a pretrained tran
 
 The pipeline begins with the BAREC corpus, where each Arabic sentence carries an ordered readability level from 1 to 19. The input is the D3Tok column, a morphologically segmented representation in which clitics are separated from their host words and marked with a \texttt{+}. This input is used with AraBERTv2 because it matches the segmented representation used in the BAREC benchmark \cite{elmadani2025barec}. The text is tokenized and passed to AraBERTv2, whose pooled sentence representation is connected to a prediction head selected for each experiment.
 
-This representation goes to a prediction head whose form depends on the configuration. The softmax losses (cross entropy, ordinal log loss, EMD and the four soft label settings) use a linear layer with 19 outputs; regression, the Soft QWK schedule, RANK and PLR use a linear layer with a single output; CORAL uses a layer with 18 thresholds and one shared projection; and CORN uses a layer with 18 outputs, one for each conditional threshold. During training, the corresponding loss compares the output of the head with the gold label. At inference, the output is decoded to a level between 1 and 19 by taking the highest score, by rounding, or by counting how many thresholds are exceeded. Every configuration is trained and evaluated under the same protocol, with QWK as the primary metric, together with exact accuracy (\textit{Acc19}), adjacent accuracy ($\pm 1$ \textit{Acc19}), average distance (\textit{Dist}), the collapsed $7$-, $5$- and $3$-level accuracies, and the two error-distance metrics introduced in this thesis.
+This representation goes to a prediction head whose form depends on the configuration. The softmax losses (cross entropy, ordinal log loss, EMD and SOFT2) use a linear layer with 19 outputs; regression, the Soft QWK schedule, RANK and PLR use a linear layer with a single output; CORAL uses a layer with 18 thresholds and one shared projection; and CORN uses a layer with 18 outputs, one for each conditional threshold. During training, the corresponding loss compares the output of the head with the gold label. At inference, the output is decoded to a level between 1 and 19 by taking the highest score, by rounding, or by counting how many thresholds are exceeded. Every configuration is trained and evaluated under the same protocol, with QWK as the primary metric, together with exact accuracy (\textit{Acc19}), adjacent accuracy ($\pm 1$ \textit{Acc19}), average distance (\textit{Dist}), the collapsed $7$-, $5$- and $3$-level accuracies, and the two error-distance metrics introduced in this thesis.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.78\linewidth]{pipeline.png}
@@ -362,11 +362,11 @@ This chapter reviews previous studies related to Arabic readability assessment, 
 \vspace{0.2cm}
 
 \item \textbf{Chapter 3 -- Proposed Methodology:}
-This chapter describes the corpus and its splits, the D3Tok input representation, the encoder and the prediction heads, and the exact form of every loss function with the tests that verify it. It then covers the initialisation of the CORAL cut points, the training protocol with every declared difference from the published script, the evaluation metrics and the track with a frozen backbone.
+This chapter describes the corpus and its splits, the D3Tok input representation, the encoder and the prediction heads, and the exact form of every loss function with the tests that verify it. It then describes the selected losses and heads, the training protocol, the evaluation metrics, and the checks used to verify the experiments.
 \vspace{0.2cm}
 
 \item \textbf{Chapter 4 -- Experiments and Results:}
-This chapter reports the integrity checks, the reproduction of the published benchmark and the full results of the fourteen runs on both splits, including RANK, PLR and CORN. It then examines the trade off between exact accuracy and ordinal agreement, the analysis of error distance, the four ablations and the track with a frozen backbone, and ends with a comparison against published systems and human agreement, followed by the limitations.
+This chapter reports the integrity checks and results for the 13 selected configurations on the official development and test splits. It examines the trade-off between exact accuracy and ordinal agreement, analyzes prediction-error distance, compares the results with published systems, and discusses the limitations of the experiments.
 
 % One thing to check: this section says four ablations, but the abstract says three.
 \vspace{0.2cm}
@@ -377,7 +377,7 @@ The final chapter brings the findings together, states the contributions and the
 
 \section{Summary of Introduction}
 This chapter introduced fine-grained Arabic readability assessment, the linguistic challenges involved, and the need to account for the ordinal structure of BAREC's 19 labels. It defined the research question and outlined the 13 selected configurations, the common AraBERTv2--D3Tok pipeline, and the evaluation metrics. The next chapter reviews related research and the systems that motivate the experimental choices.
-\textit{The next chapter reviews previous work on readability assessment, pretrained language models, the BAREC corpus, ordinal regression methods, pairwise ranking objectives for readability and the systems built for the BAREC 2025 Shared Task.}
+
 % Chapter 2: 
 \chapter{Literature Review}
 \label{chap:relatedwork}
