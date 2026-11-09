@@ -1,0 +1,468 @@
+\chapter{Experiments and Results}
+\label{chap:results}
+
+\section{Introduction}
+
+This chapter reports the eleven training runs described in Chapter~\ref{chap:methodology} and
+what they say about the research question. Section~\ref{sec:res-integrity} reports the checks
+that decide whether the numbers can be trusted at all. Section~\ref{sec:res-repro} compares the
+eight loss functions that the BAREC benchmark also reports, which is the evidence that the
+pipeline is faithful. Section~\ref{sec:res-main} presents the full results on both splits and
+answers the question put by the research brief: how CORAL and the QWK-oriented objective
+compare with the distance-aware losses under one identical protocol.
+Sections~\ref{sec:res-tradeoff} and~\ref{sec:res-distance} separate two things that the single
+headline metric hides, namely exact-match accuracy and the distribution of error distances.
+Sections~\ref{sec:res-cutpoints} to~\ref{sec:res-softqwk} report the four ablations, and
+Section~\ref{sec:res-frozen} reports the frozen-backbone track. Section~\ref{sec:res-context}
+places the numbers beside the published systems and beside human agreement, and
+Section~\ref{sec:res-limits} states the limitations.
+
+Every number in this chapter is read from the result files produced by the training runs. The
+values quoted in the text and the values in the tables are generated from those files by a
+script, so the text and the tables cannot disagree.
+
+\section{Integrity of the Runs}
+\label{sec:res-integrity}
+
+The three guards declared in Section~\ref{sec:meth-impl} passed identically in all eleven runs,
+and the result files record the evidence.
+
+\begin{itemize}
+\item Exactly one accelerator was visible in every run, an NVIDIA \gpuName, and the realised
+training batch was 64 sentences in every run, including both phases of the two-phase method.
+\item Every epoch of every run performed \stepsPerEpoch\ optimiser steps, which is the number
+implied by 54{,}845 training sentences at an effective batch of 64.
+\item The reloaded selected checkpoint reproduced the development QWK, accuracy and distance
+logged during training at that epoch, to within $10^{-9}$, in every run. The numbers reported
+below therefore belong to the epoch the selection rule chose.
+\item All eleven runs used the same corpus revision (\datasetSha) and the same encoder revision
+(\modelSha), with Python \pythonVersion, PyTorch \torchVersion\ and Transformers \tfVersion,
+and none of them was a reduced smoke run.
+\end{itemize}
+
+The eleven runs together took \totalMinutes\ minutes of accelerator time, between \minAll\ and
+\maxAll\ minutes each.
+
+\section{Reproduction of the Benchmark}
+\label{sec:res-repro}
+
+Eight of the nine methods in the comparable group are loss functions that the BAREC benchmark
+also reports, on the same corpus, the same encoder and the same input representation. Comparing
+them is therefore a test of the pipeline rather than a contribution, and it has to be passed
+before anything else in this chapter can be believed.
+Table~\ref{tab:res-repro} gives the comparison on the development set.
+
+\input{tablereproduction}
+
+Seven of the eight losses land within 1.5 QWK points of the published value, and the mean
+absolute difference over the eight is \gapQwkMean\ points. Cross-entropy reproduces to
+\gapQwkCE\ points, EMD to \gapQwkEMD\ and OLL to \gapQwkOLL, which is as close as a single run
+of a fine-tuning pipeline can reasonably be expected to land. The soft-label family sits above
+the published values, most clearly at $\beta=2$ (\gapQwkSoftTwo) and $\beta=5$
+(\gapQwkSoftFive), and its ordering across $\beta$ is not the published one. The four values
+span 1.69 QWK points in our run while the published four span 0.8, so this is the family in
+which a single run is least informative.
+
+The one substantial difference is the regression method, at \gapQwkMSE\ QWK points and
+\gapAccMSE\ points of exact accuracy. Table~\ref{tab:res-epochs} explains most of it.
+
+\input{tableepochs}
+
+The development QWK of the regression method keeps rising until epoch four, but its
+development \emph{loss} is lowest at epoch \selMSE, and the selection rule takes that epoch. At
+epoch four the method reaches \qwkseldevQwkMSE\ development QWK and \qwkseldevAccMSE\ exact
+accuracy, against the published \paperQwkMSE\ and \paperAccMSE; on the
+test set it reaches \qwkseltestQwkMSE\ QWK and \qwkseltestAccMSE\ exact accuracy against the
+published 84.4 and 41.4. In other words the implementation does reach the published numbers,
+and the gap in Table~\ref{tab:res-repro} is the price of one checkpoint decision, taken by a
+rule that both the benchmark and this thesis apply. The mean squared error loss is only loosely
+coupled to QWK, so the epoch that minimises it need not be the epoch that maximises the metric;
+the same effect appears, smaller, for several other methods and is quantified in
+Section~\ref{sec:res-selection}.
+
+Table~\ref{tab:res-collapsed} repeats the comparison at the coarser granularities that the
+benchmark reports for three of the losses.
+
+\input{tablecollapsed}
+
+Cross-entropy and EMD agree with the published collapsed accuracies to within about one point on
+both splits. The regression method is again lower, by three to four points, which is consistent
+with the same checkpoint effect: collapsed accuracy is an exact-match measure, and the epoch
+chosen for the regression method is the one at which its predictions are still concentrated
+near the centre of the scale.
+
+The conclusion of this section is that the pipeline reproduces the benchmark. That licence is
+what allows the next sections to add CORAL and Soft-QWK to the same table and to read the
+differences as differences between methods.
+
+\section{Main Results}
+\label{sec:res-main}
+
+Tables~\ref{tab:res-main-dev} and~\ref{tab:res-main-test} report every metric for every run on
+the development and test splits.
+
+\input{tablemaindev}
+
+\input{tablemaintest}
+
+\subsection{CORAL and the QWK-Oriented Objective}
+
+The question in the research brief is whether an ordinal head and a metric-aligned loss beat
+distance-aware losses when the dataset, the protocol and the metric are held fixed. The answer
+is that they are at the top of the table, and that they are not alone there.
+
+On the development set the comparable group is led by OLL at \devQwkOLL, CORAL at
+\devQwkCoral\ and the regression method at \devQwkMSE. The distance between these three is
+0.03 QWK points. The two-phase Soft-QWK method reaches \devQwkSoftqwk, which is
+\softqwkPhaseTwoGain\ above its own warm-up checkpoint and the highest development value
+outside the ablation, but it is a different training schedule and is therefore reported
+separately. On the
+test set the order of the leaders changes: CORAL reaches \testQwkCoral, Soft-QWK
+\testQwkSoftqwk, OLL \testQwkOLL\ and the regression method \testQwkMSE.
+
+Two things follow, and they should be stated with the same care.
+
+First, ordinal-aware objectives clearly beat the ordinal-blind baseline. Cross-entropy is
+\devQwkCE\ on development and \testQwkCE\ on test, which together with SOFT at $\beta=3$
+forms the bottom of the comparable group. Every other method is above it, by up to three QWK
+points on development and up to four on test; the single soft-label configuration that does not
+beat it is $\beta=3$, at \devQwkSoftThree\ and \testQwkSoftThree. This is the same
+conclusion the benchmark draws, and it is reproduced here under a protocol in which nothing but
+the head and the loss changed.
+
+Second, the differences \emph{among} the ordinal-aware objectives are small, and the ranking is
+not stable between splits: the leader on development is fourth on test, and CORAL rises from
+\devQwkCoral\ on development to \testQwkCoral\ on test while the regression method rises by
+less than a point. With one seed per method, differences of a few tenths of a QWK point cannot be attributed
+to the mechanism. This thesis therefore does not name a single best loss. What the evidence
+supports is a group of four objectives, namely the CORAL head, the metric-aligned two-phase
+schedule, distance-weighted ordinal log loss and plain regression, that are equivalent within
+the resolution of this experiment and that all clearly beat cross-entropy and the soft-label
+family on QWK.
+
+\subsection{Where the Groups Differ}
+
+Reading across Table~\ref{tab:res-main-dev} shows that the four leaders on QWK are not the same
+methods that lead on the other metrics, and that the split is systematic. The two methods with
+a continuous or cumulative output, that is the regression head and the CORAL head, have the
+highest QWK and the lowest exact accuracy: \devAccMSE\ and \devAccCoral\ respectively, against
+\devAccSoftTwo\ for the best soft-label configuration. Their macro-F1 values, \devMfMSE\ and
+\devMfCoral\ against \devMfSoftTwo, say the same thing in a different way: they concentrate
+their predictions on a narrower band of levels and rarely commit to a rare level. The
+classification head with a distance-aware loss does the opposite: it spreads predictions across
+the whole scale, gets more of them exactly right, and pays for the attempts with a longer tail
+of errors. Section~\ref{sec:res-tradeoff} quantifies this trade-off and
+Section~\ref{sec:res-distance} looks at the tail itself.
+
+\section{Exact Match against Ordinal Agreement}
+\label{sec:res-tradeoff}
+
+The trade-off is visible as an almost exact inversion between two columns of the same table. Among
+the ten runs of the comparable and two-phase groups, the four highest development QWK values
+belong to Soft-QWK, OLL, CORAL and regression, and those same four hold the four lowest exact
+accuracies: \devAccCoral\ for CORAL, \devAccSoftqwk\ for Soft-QWK, \devAccMSE\ for regression
+and \devAccOLL\ for OLL. Conversely the six methods with the highest exact accuracy, led by
+SOFT at $\beta=2$ with \devAccSoftTwo, occupy the lower half of the QWK column.
+
+The mechanism is not mysterious. A regression or cumulative model is rewarded for placing its
+prediction close to the gold level and is never rewarded for landing on it exactly, so it
+learns a smooth, cautious mapping and keeps away from the ends of the scale. A softmax model
+with a distance-aware loss is still trained to put mass on the gold level, so it keeps
+committing to specific levels, wins exact matches, and occasionally commits badly.
+
+This has a practical consequence that the single headline metric hides. If the intended use is
+to place a text in a narrow band, for example to choose which grade a text suits, then QWK and
+the distance metrics are the right criteria and the regression or CORAL family is the right
+choice. If the intended use needs the exact level, for instance to label material by a
+curriculum level without human review, then exact accuracy matters and the soft-label family is
+nearly twenty points better at it than the QWK leaders, at a cost of two to three QWK points.
+Reporting only QWK, as both the benchmark and the shared task do, obscures a difference this
+large.
+
+\section{Error Distance: Near Misses and Far Misses}
+\label{sec:res-distance}
+
+The research brief asks not only which method scores best but which produces the smallest error
+distance, and specifically whether errors are near misses rather than far misses. Four columns
+of Tables~\ref{tab:res-main-dev} and~\ref{tab:res-main-test} answer that: adjacent accuracy,
+mean distance, and the two far-miss rates introduced in this thesis.
+
+The first observation is that the best method on QWK is not the best method on distance. On the
+development set the lowest mean distance in the study is \devDistSoftTwo\ levels, from SOFT at
+$\beta=2$, whose QWK is \devQwkSoftTwo, two points below the leaders. The QWK leaders have
+\emph{worse} mean distance: \devDistCoral\ for CORAL and \devDistSoftqwk\ for Soft-QWK, the two
+worst values in the whole table. The same pattern holds on test, where the lowest mean distance
+is \testDistSoftTwo\ and CORAL is at \testDistCoral.
+
+This looks contradictory only until the two tails are separated. Mean distance averages all
+errors, so it is dominated by the many small ones; QWK weights an error by its square, so it is
+dominated by the few large ones. The far-miss rates show which methods control the large
+errors. On the development set the lowest rate of errors of three levels or more is
+\devFarThreeCoral\ per cent, from CORAL, followed by the regression method at
+\devFarThreeMSE\ and OLL at \devFarThreeOLL; cross-entropy is worst at \devFarThreeCE. For
+errors of five levels or more the order is the regression method at \devFarFiveMSE\ per cent,
+OLL at \devFarFiveOLL\ and CORAL at \devFarFiveCoral, against \devFarFiveCE\ for cross-entropy.
+On the test set CORAL again has the fewest errors of three levels or more, \testFarThreeCoral\
+per cent, and the regression method the fewest of five levels or more, \testFarFiveMSE.
+
+So the ordinal mechanisms do exactly what they were designed to do, and the effect is specific:
+cross-entropy makes roughly one error of five levels or more in every fifteen sentences, while
+the regression head makes one in every twenty-seven on the development set. What the ordinal
+mechanisms do not do is reduce the number of small errors; the soft-label family, which keeps a
+cross-entropy-like target, remains better at that.
+
+Adjacent accuracy behaves like a third, intermediate criterion. The highest development value is
+\devPmSoftqwk\ per cent for Soft-QWK, followed by \devPmSoftTwo\ for SOFT at $\beta=2$ and
+\devPmMSE\ for regression, while CORAL is last at \devPmCoral. CORAL therefore achieves its
+high QWK without being good at landing within one level: it avoids the catastrophic errors that
+QWK punishes hardest, but it also misses the adjacent band more often than any other method.
+For an application in which a one-level error is acceptable and a three-level error is not,
+CORAL and the regression method are the appropriate choices; if a one-level error already has a
+cost, the soft-label family is preferable.
+
+Taken together, the three views of error distance answer the brief's question in a way a single
+metric cannot: the methods that maximise QWK are the methods that minimise far misses, not the
+methods that minimise average error.
+
+\section{CORAL Cut-Points and the Travel Budget}
+\label{sec:res-cutpoints}
+
+Section~\ref{sec:meth-coral-init} argued that CORAL's cut-points cannot travel far under the
+BAREC protocol, and initialised them from the training label frequencies for that reason. Two
+measurements test the argument.
+
+The first is the distance the cut-points actually moved. Over the whole run, no cut-point moved
+further than \cutMoveFineCoral\ from its initial value, against a fitted spread of
+\cutSpreadCoral\ between the highest and the lowest cut-point. The budget computed in
+Section~\ref{sec:meth-coral-init} was \lrSumEncoder, and the observed movement is well inside
+it. The trained cut-points run from \cutTopCoral\ down to \cutBottomCoral, which is to say they
+are, to two decimal places, the values that Equation~\ref{eq:coral-init} wrote into them before
+training started. Under this protocol the cut-points are not learned; they are supplied. A
+zero-initialised head would have had to move each of them by up to six units on a budget of
+\lrSumEncoder, which the arithmetic forbids. Table~\ref{tab:res-cutpoints} also confirms that
+the 18 cut-points stayed correctly ordered after every epoch, so the rank consistency that
+motivates the CORAL head held throughout training and not only at the optimum.
+
+\input{tablecutpoints}
+
+The second measurement is the ablation that raises the head learning rate to $10^{-3}$ and
+leaves the encoder at $5\times10^{-5}$, multiplying the cut-point budget by twenty to
+\lrSumHeadlr. The cut-points then move, by up to \cutMoveCoralHeadlr, and their spread widens
+from \cutSpreadCoral\ to \cutSpreadCoralHeadlr. Development QWK rises by
+\coralHeadlrDevGain\ points to \devQwkCoralHeadlr\ and test QWK by \coralHeadlrTestGain\ points
+to \testQwkCoralHeadlr, the highest test value recorded in this work. Exact accuracy rises as
+well, from \devAccCoral\ to \devAccCoralHeadlr, and the far-miss rate falls from
+\devFarThreeCoral\ to \devFarThreeCoralHeadlr.
+
+Both measurements are consistent with the argument, and the ablation adds something the
+argument did not predict: the cut-points are not merely hard to move, they are worth moving.
+Since the ablation changes an optimiser setting rather than the head, it is reported outside the
+comparable group; it is also a single run, so the size of its gain should be treated as an
+indication and not as a measured effect. The honest summary is that the initialisation of
+Equation~\ref{eq:coral-init} makes a CORAL head usable under a protocol whose learning rate was
+chosen for an encoder, and that a head-specific learning rate appears to be the better remedy.
+
+\section{Decision Threshold for CORAL}
+\label{sec:res-threshold}
+
+The ZAI system decodes its CORAL head with a threshold tuned on the development set rather than
+with $0.5$ \cite{nazzal2025zai}. Repeating that on the saved CORAL model selects
+$t=\zaiTCoral$, barely away from the default, and moves test QWK by \zaiTestGainCoral\ points,
+from \testQwkCoral\ to \zaiTestQwkCoral. In the head learning rate ablation the grid selects
+$t=\zaiTCoralHeadlr$ and nothing changes.
+
+The threshold is therefore not where the ZAI system's advantage comes from, at least not with
+cut-points initialised as they are here. This is what Equation~\ref{eq:coral-init} predicts: an
+initialisation that already encodes the cumulative label frequencies places the decision
+boundaries where the data puts them, so there is little left for a global threshold shift to
+correct.
+
+\section{The Checkpoint Selection Rule}
+\label{sec:res-selection}
+
+Both shared-task systems select their checkpoint on development QWK
+\cite{nazzal2025zai,trigui2025stbw}, while the benchmark, and therefore this thesis, selects on
+development loss. Table~\ref{tab:res-selection} evaluates both rules for every method. Only the
+test columns can be read as results, since a checkpoint chosen on development QWK has an
+optimistic development QWK by construction.
+
+\input{tableselection}
+
+The rule is worth up to \qwkselTestGainMax\ QWK points on the test set. It changes nothing for
+the four runs whose loss and QWK already peak at the same epoch, namely OLL, EMD, the two-phase
+method and the head learning rate ablation. It is worth \qwkselTestGainCE\ points for cross-entropy,
+\qwkselTestGainSoftThree\ for SOFT at $\beta=3$ and \qwkselTestGainSoftFour\ for SOFT at
+$\beta=4$, and only \qwkselTestGainCoral\ for CORAL and \qwkselTestGainMSE\ for the regression
+method.
+
+Two conclusions follow. First, part of the difference between published systems that use
+different selection rules is the rule and not the model, and a comparison that does not hold the
+rule fixed is not a comparison of methods. Second, the effect is not uniform: it is largest for
+the methods whose loss is least aligned with the metric, and smallest for CORAL and regression,
+whose losses already reward proximity. The gaps between the methods in
+Table~\ref{tab:res-main-test} shrink under QWK selection, because the methods that gain most
+are the ones that were behind.
+
+\section{The Two-Phase Soft-QWK Method}
+\label{sec:res-softqwk}
+
+The two-phase method was trained as mean squared error for three epochs and then as Soft-QWK
+for three more, on the same six-epoch budget as every other run. The warm-up checkpoint, chosen
+by the same rule inside phase one, reaches \phaseOneQwk\ development QWK with \phaseOneAcc\
+exact accuracy and a mean distance of \phaseOneDist. After the second phase the same model
+reaches \devQwkSoftqwk\ development QWK, that is \softqwkPhaseTwoGain\ points, with adjacent
+accuracy rising to \devPmSoftqwk, the highest in the study, and the mean distance rising to
+\devDistSoftqwk, one of the two worst. On the test set the method reaches \testQwkSoftqwk.
+
+The size and the direction of that gain match what the STBW authors report for their own system,
+which improved from 83.9 to 84.88 QWK when the second phase was added
+\cite{trigui2025stbw}. Their absolute numbers are not comparable with ours, for two reasons:
+they evaluate on the shared-task splits, and their input carries corpus metadata and
+surface statistics in addition to the segmented text, while the input here is the segmented
+text alone.
+
+Table~\ref{tab:res-epochs} shows the phase-two trajectory, which rises from 82.13 to
+\devQwkSoftqwk\ and then falls to 82.57. A batch-level objective that can be lowered by
+predicting near the centre of the scale is expected to drift in exactly that way, and the
+metrics of the selected epoch show the drift beginning: adjacent accuracy is the best in the
+study while the mean distance and the exact accuracy are among the worst, which is the profile
+of a model that has learned to stay close to the middle. The warm-up is therefore not a
+formality, and the fact that this thesis reproduces the benefit of the second phase under a
+protocol that gives it no extra epochs is the substantive result here.
+
+\section{Frozen-Backbone Track}
+\label{sec:res-frozen}
+
+Table~\ref{tab:res-cpu} reports the second track, in which the encoder is frozen and only a
+linear head is trained on cached features, over five seeds.
+
+\input{tablecpu}
+
+Three results deserve comment.
+
+The first is the variance. Every method except one has a standard deviation over five seeds of
+at most \cpuStdMaxQwk\ QWK points, so on frozen features the seed is nearly irrelevant. The
+exception is OLL on pooled features, at \cpuStdOll\ points, which makes the point that the
+stability of a loss is itself a property worth reporting: the same loss that is among the
+leaders when the encoder can adapt is the least stable one when it cannot.
+
+The second is the ranking. Under freezing, the metric-aligned two-phase method is the strongest
+on QWK on both representations, \cpuPoolerdevQwkSoftqwk\ and \cpuMeandevQwkSoftqwk, and it
+remains the weakest on exact accuracy and mean distance, so the trade-off of
+Section~\ref{sec:res-tradeoff} survives the change of regime. The ordering of the remaining
+methods does not survive. The rank correlation between the fine-tuned ranking and the frozen
+ranking is \cpuSpearmanPooler\ on pooled features and \cpuSpearmanMean\ on mean-pooled
+features, that is, no relationship at all in the second case and a mild inversion in the first.
+OLL, third when fine-tuned, is last under freezing on both representations, and cross-entropy
+climbs. A loss comparison on frozen features is therefore not a cheap substitute for a loss
+comparison under fine-tuning, and this thesis reports the frozen track for its variance and for
+its CPU-friendly setting rather than as evidence about the fine-tuning ranking.
+
+The third is the cut-point ablation that the fine-tuning track could not afford. With the head
+trained for \cpuEpochs\ epochs at $\cpuHeadLr$, the travel budget is \cpuLrSum, and the
+frequency initialisation of Equation~\ref{eq:coral-init} then makes no difference at all:
+the frequency-initialised and the zero-initialised heads differ by \cpuZeroInitDiffPooler\ QWK
+points on pooled features and \cpuZeroInitDiffMean\ on mean-pooled features, which is inside
+the seed-to-seed spread. This is the other side of
+the argument in Section~\ref{sec:res-cutpoints}. When the budget is large the initialisation is
+irrelevant; when it is \lrSumEncoder, as under the BAREC protocol, the cut-points never leave
+their initial values. The initialisation is a remedy for a specific arithmetic situation, not a
+general improvement, and the frozen track is what shows the difference.
+
+\section{Context: Published Systems and Human Agreement}
+\label{sec:res-context}
+
+Two comparisons frame these numbers, and both need a caution.
+
+The published shared-task systems report QWK on the blind test set of the BAREC 2025 shared
+task: 85.5 for the CORAL system and 85.6 for the two-phase system
+\cite{nazzal2025zai,trigui2025stbw}. Those are different data from the corpus test split used
+here, and both systems differ from this study in more than the loss: the CORAL system selects
+on QWK, tunes its threshold and uses early stopping, and the two-phase system adds metadata
+features. The results here are therefore comparable with the benchmark tables, which they
+reproduce, and not with the leaderboard.
+
+Human agreement is the second frame. The corpus authors report an average pairwise QWK between
+annotators of \iaaPairwiseQwk\ and an average QWK of \iaaUnifiedQwk\ between individual
+annotators and the unified label, with an exact pairwise agreement of only
+\iaaPairwiseAcc\ per cent and an average pairwise distance of 0.94 levels
+\cite{elmadani2025barec}. The best test QWK in this study, \testQwkCoralHeadlr, is therefore
+above the agreement of two randomly chosen annotators and still below the agreement of an
+annotator with the adjudicated label. The exact-accuracy figures deserve the same framing: the
+best exact accuracy here, \testAccSoftFive\ per cent, is not far below what two annotators
+achieve with each other. This is the honest measure of how much room is left on this task, and
+it also explains why nineteen-way exact accuracy is a demanding criterion for a scale whose own
+annotators agree exactly in six cases out of ten.
+
+\section{Limitations}
+\label{sec:res-limits}
+
+The following limitations bound every claim made above.
+
+\begin{enumerate}
+\item \textbf{One seed per method in the fine-tuning track.} The protocol fixes the seed at 42
+and the accelerator budget did not allow repeats. Differences of a few tenths of a QWK point,
+which is the size of the gaps among the four leaders, cannot be separated from run-to-run
+variation. This is why no single best method is named. The frozen track shows that seed
+variation is small once the encoder is fixed, but it says nothing about variation in
+fine-tuning, where the encoder itself moves.
+
+\item \textbf{Mixed precision.} The runs use fp16 autocast where the benchmark runs in single
+precision. The losses are computed in single precision, but the encoder forward and backward
+passes are not, and the number of optimiser steps skipped because of gradient overflow was not
+recorded. A small part of the differences in Table~\ref{tab:res-repro} may come from this.
+
+\item \textbf{Batch composition.} The effective batch of 64 is assembled from four micro-batches
+of 16. This is arithmetically equivalent for per-sentence losses except in the last step of each
+epoch, as described in Section~\ref{sec:meth-protocol}.
+
+\item \textbf{The two-phase method is not in the comparable group.} It uses the same six epochs
+but a different schedule and, in its second phase, a true batch of 64 with gradient
+checkpointing. Its numbers answer whether the metric-aligned objective helps, not whether it
+would win a comparison in which every method had a two-phase schedule.
+
+\item \textbf{The CORAL cut-point result is a measurement plus one ablation.} That the
+cut-points barely move is measured directly and is not in doubt. That the initialisation is
+therefore necessary is an argument supported by the movement, by the head learning rate
+ablation and by the frozen-track comparison; a zero-initialised CORAL run under the fine-tuning
+protocol was not performed and would be the direct test.
+
+\item \textbf{The regression gap.} Section~\ref{sec:res-repro} attributes most of it to the
+selected epoch and supports that with the per-epoch values, but the reason our development loss
+for that method bottoms out two epochs earlier than the published run does remains unexplained.
+
+\item \textbf{The frozen track is not comparable with the published tables} and uses head
+hyper-parameters chosen by us, as stated in Section~\ref{sec:meth-frozen}.
+
+\item \textbf{Scope.} One encoder, one corpus, sentence level, and no ensembling, no external
+data and no metadata features. Nothing here speaks to document-level readability or to other
+Arabic encoders.
+\end{enumerate}
+
+\section{Summary}
+
+The pipeline reproduces the published benchmark: seven of eight losses land within 1.5 QWK
+points of their published values and the eighth is explained by one checkpoint decision, which
+the per-epoch values in Table~\ref{tab:res-epochs} make visible.
+
+On the question the research brief asks, the answer has three parts. Ordinal-aware objectives
+beat the ordinal-blind baseline by up to three QWK points on development and four on test, and
+the CORAL head and the metric-aligned two-phase objective are both in the leading group.
+Within that group, made up of CORAL, the two-phase Soft-QWK schedule, ordinal log loss and
+plain regression, the differences are a few tenths of a point on one seed and no single winner
+can be declared. And the ordinal mechanisms buy their QWK specifically by removing far misses,
+not by reducing the average error: CORAL has the fewest errors of three levels or more on both
+splits, the regression method the fewest of five levels or more, while the lowest mean distance
+and the highest exact accuracy belong to a soft-label configuration two QWK points behind them.
+
+Three further findings came out of the ablations. The cut-points of a CORAL head move less than
+\cutMoveFineCoral\ under the BAREC learning rate, so they are effectively supplied by their
+initialisation rather than learned, and raising only the head learning rate moves them and
+improves both QWK and exact accuracy. The checkpoint selection rule is worth up to
+\qwkselTestGainMax\ test QWK points and is worth most to the methods whose loss is least
+aligned with the metric, so it has to be held fixed in any comparison. And the ranking of
+losses does not survive freezing the encoder, which means a cheap frozen-feature study cannot
+stand in for a fine-tuning study, even though it is the setting in which seed variance can
+actually be measured.
+
+\textit{The next chapter draws these findings together and states what remains to be done.}
