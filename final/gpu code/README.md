@@ -6,14 +6,14 @@ metrics, checks). They differ only in the methods they train.
 
 | Script | Methods | Group |
 |---|---|---|
-| `barec_exact_v3_partA.py` | CE, MSE (regression), OLL15, EMD | 1: BAREC reproduction |
-| `barec_exact_v3_partB.py` | SOFT2, SOFT3, SOFT4, SOFT5 | 1: BAREC reproduction (SOFT3 kept) |
-| `barec_exact_v3_partC.py` | CORAL, CORAL_HEADLR (ablation), SOFTQWK | 2: ZAI and STBW methods |
-| `barec_exact_v3_partD.py` | CORN, TSOFT12, LBL10 | 3 (CORN) and 4 |
-| `barec_exact_v3_partE.py` | RANK, PLR, WKL | 3 (RANK, PLR); WKL not used, see below |
-| `barec_exact_v3_partJ.py` | CCC, MV | 3 |
-| `barec_exact_v3_partK.py` | OE, DLDL2 | 3 (OE) and 4 (DLDL2) |
-| `barec_exact_v3_partL.py` | LISTNET, CLM | 4 (ListNet) and 3 (CLM) |
+| `barec_exact_v3_partA.py` | CE, MSE (regression), OLL15, EMD | A: BAREC reproduction |
+| `barec_exact_v3_partB.py` | SOFT2, SOFT3, SOFT4, SOFT5 | A: BAREC reproduction (SOFT3 kept) |
+| `barec_exact_v3_partC.py` | CORAL, CORAL_HEADLR, SOFTQWK | B: ZAI and STBW methods (CORAL_HEADLR: additional) |
+| `barec_exact_v3_partD.py` | CORN, TSOFT12, LBL10 | C (CORN) and additional |
+| `barec_exact_v3_partE.py` | RANK, PLR, WKL | C (RANK, PLR); WKL not used, see below |
+| `barec_exact_v3_partJ.py` | CCC, MV | C |
+| `barec_exact_v3_partK.py` | OE, DLDL2 | C (OE) and additional (DLDL2) |
+| `barec_exact_v3_partL.py` | LISTNET, CLM | additional (ListNet) and C (CLM) |
 
 Parts A, B and C are identical except for the line `PART = ...`. The same is true for Parts J, K and L.
 Parts J, K and L also stop at the start if the software versions differ from the reference

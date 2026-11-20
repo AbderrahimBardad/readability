@@ -24,10 +24,10 @@ except the prediction head and the loss function.
 
 | Group | Methods | Why |
 |---|---|---|
-| 1. BAREC reproduction | CE (baseline), Regression (MSE), OLL (alpha=1.5), EMD, SOFT (beta=3) | check our pipeline against the BAREC paper |
-| 2. Published systems | CORAL head (ZAI), MSE then Soft-QWK (STBW) | compare with the two shared-task papers |
-| 3. New loss functions | MV, CCC, CLM, OE, RANK, PLR, CORN | our own exploration |
-| 4. Additional | ListNet, DLDL-v2, truncated soft labels, length-balanced loss | reported, including negative results |
+| A. BAREC reproduction | CE (baseline), Regression (MSE), OLL (alpha=1.5), EMD, SOFT (beta=3) | check our pipeline against the BAREC paper |
+| B. Published systems | CORAL head (ZAI), MSE then Soft-QWK (STBW) | compare with the two shared-task papers |
+| C. New heads and losses | MV, CCC, CLM, OE, RANK, PLR, CORN | heads and losses not tested on BAREC before |
+| Additional | ListNet, DLDL-v2, truncated soft labels, length-balanced loss, CORAL with head learning rate 1e-3 | reported, including negative results |
 
 ## Main results (QWK in %, development / test)
 
@@ -47,8 +47,8 @@ except the prediction head and the loss function.
 | RANK | 82.67 | 84.06 |
 | PLR | 82.61 | 83.68 |
 | CORN | 81.92 | 82.57 |
-| *Group 4:* ListNet / DLDL-v2 / TSOFT / LBL | 82.38 / 81.96 / 80.81 / 75.72 | 83.20 / 83.02 / 81.84 / 78.13 |
-| *Ablation:* CORAL with head learning rate 1e-3 | 83.86 | 84.58 |
+| *Additional:* ListNet / DLDL-v2 / TSOFT / LBL | 82.38 / 81.96 / 80.81 / 75.72 | 83.20 / 83.02 / 81.84 / 78.13 |
+| *Additional:* CORAL with head learning rate 1e-3 | 83.86 | 84.58 |
 
 For reference, the best model of the BAREC paper (regression) has 84.0 (dev) and 84.4 (test).
 None of our main methods beats it; the best ones are within about 0.1 point on the test set.
@@ -60,12 +60,12 @@ All runs use one seed (42).
 |---|---|
 | `final/gpu code/` | training scripts (Parts A to E and J to L), one GPU |
 | `final/gpu code results/` | one JSON result file per method |
-| `final/cpu code/` | CPU-friendly track: frozen encoder, linear heads, 5 seeds |
-| `final/cpu code results/` | results of the CPU track |
 | `final/papers/` | the papers the project builds on |
-| `final/these nov/`, `final/these v2/`, `final/these3/`, `final/thesis/` | earlier drafts of the thesis |
 
 The code and result folders each have their own README. The final thesis is written in LaTeX on Overleaf.
+
+Older files (the earlier drafts of the thesis and the frozen-encoder CPU track, which is not part of the
+final thesis) are kept unchanged in the [`archive` branch](https://github.com/AbderrahimBardad/readability/tree/archive).
 
 ## How to reproduce a run
 

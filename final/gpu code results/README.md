@@ -28,9 +28,9 @@ SOFTQWK contains the history of its first (MSE) phase; LBL10 contains its class 
 
 ## Files
 
-- Group 1: `CE`, `MSE`, `OLL15`, `EMD`, `SOFT3` (and `SOFT2`, `SOFT4`, `SOFT5`, run but not selected)
-- Group 2: `CORAL`, `SOFTQWK`, and the ablation `CORAL_HEADLR`
-- Group 3: `MV`, `CCC`, `CLM`, `OE`, `RANK`, `PLR`, `CORN`
-- Group 4: `LISTNET`, `DLDL2`, `TSOFT12`, `LBL10`
+- Group A: `CE`, `MSE`, `OLL15`, `EMD`, `SOFT3` (and `SOFT2`, `SOFT4`, `SOFT5`, run but not selected)
+- Group B: `CORAL`, `SOFTQWK`
+- Group C: `MV`, `CCC`, `CLM`, `OE`, `RANK`, `PLR`, `CORN`
+- Additional: `LISTNET`, `DLDL2`, `TSOFT12`, `LBL10`, `CORAL_HEADLR`
 - `WKL`: not used (different software environment, see `../gpu code/README.md`)
 - `__huggingface_repos__.json`: exact revisions of the corpus and the model
